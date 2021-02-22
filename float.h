@@ -33,6 +33,42 @@
 
       return 0;
     }
+  },
+  Example2:{
+    #include "clmagic/calculation/fundamental/float.h"
+    #include <iostream>
+    using namespace::calculation;
+
+    template<typename __traits, size_t __size>
+    struct Spectrum {
+      using Real = __traits;
+      static constexpr double wavelength_lower = static_cast<double>(380);
+      static constexpr double wavelength_upper = static_cast<double>(740);
+      static constexpr size_t sampling_segments = __size;
+      static constexpr double sampling_steplength = (wavelength_upper - wavelength_lower) / static_cast<double>(sampling_segments);
+      
+      Real operator()(Real lambda) const {
+        assert(wavelength_lower <= lambda && lambda < wavelength_upper);
+        return spectral_power_array[
+          static_cast<size_t>(floor((lambda - wavelength_lower) / sampling_steplength))
+        ];
+      }
+
+      Real spectral_power_array[sampling_segments];
+    };
+
+    int main(int, char**) {
+      Spectrum<float128, 10> rod = {
+        float128(1.0), float128(9)/10, float128(6)/10, float128(4)/10, float128(9)/10,
+        float128(9)/10, float128(4)/10, float128(4)/10, float128(2)/10, float128(1)/10
+      };
+      
+      for (float i = 385.f; i < 740.0f; i += 10.0f) {
+        std::cout << i << " = " << to_string(rod(float128(i))) << std::endl;
+      }
+	
+      return 0;
+    }
   }
 } */
 #pragma once
@@ -870,11 +906,57 @@ namespace calculation {
 		}
 
 		explicit operator unsigned int() const {
-			abort();
+			const auto zero_exponent = exponent_bias();
+
+			// only fraction
+			auto this_exponent = (_Mybitset & exponent_mask());
+			if ( this_exponent < zero_exponent ) {
+				return static_cast<unsigned int>(0);
+			}
+
+			// compute saved_bits, @floor(float_)
+			auto exp2_mantissa_bits = std::bitset<bits>(mantissa_bits) << exponent_offset_bits;
+			auto truncated_exponent = this_exponent - exp2_mantissa_bits;
+			auto trunc_exponent = zero_exponent - truncated_exponent;
+			size_t trunc_bits = (trunc_exponent >> exponent_offset_bits).to_ulong();
+			size_t saved_bits = (mantissa_bits+1) - trunc_bits;
+			if (saved_bits > sizeof(unsigned int) * 8) {
+				throw std::overflow_error("float_<...>::operator unsigned int() const");
+			}
+
+			// smaller-shift to correct integer-bits
+			auto this_significant = _Mybitset & mantissa_mask() | hidden_significant();
+			this_significant >>= ((mantissa_bits+1) - saved_bits);
+
+			auto dest = std::bitset_cast<sizeof(unsigned int)*8>(this_significant);
+			return reinterpret_cast<const unsigned int&>(dest);
 		}
 
 		explicit operator unsigned long long() const {
-			abort();
+			const auto zero_exponent = exponent_bias();
+
+			// only fraction
+			auto this_exponent = (_Mybitset & exponent_mask());
+			if ( this_exponent < zero_exponent ) {
+				return static_cast<unsigned long long>(0);
+			}
+
+			// compute saved_bits, @floor(float_)
+			auto exp2_mantissa_bits = std::bitset<bits>(mantissa_bits) << exponent_offset_bits;
+			auto truncated_exponent = this_exponent - exp2_mantissa_bits;
+			auto trunc_exponent = zero_exponent - truncated_exponent;
+			size_t trunc_bits = (trunc_exponent >> exponent_offset_bits).to_ulong();
+			size_t saved_bits = (mantissa_bits+1) - trunc_bits;
+			if (saved_bits > sizeof(unsigned int) * 8) {
+				throw std::overflow_error("float_<...>::operator unsigned int() const");
+			}
+
+			// smaller-shift to correct integer-bits
+			auto this_significant = _Mybitset & mantissa_mask() | hidden_significant();
+			this_significant >>= ((mantissa_bits+1) - saved_bits);
+
+			auto dest = std::bitset_cast<sizeof(unsigned long long)*8>(this_significant);
+			return reinterpret_cast<const unsigned long long&>(dest);
 		}
 		
 		explicit operator int() const {
@@ -921,9 +1003,11 @@ namespace calculation {
 				return true;
 			}
 
-			if (_Mybitset & (~sign_mask()) < (right.bitset() & (~sign_mask()))) {
+			if ((_Mybitset & (~sign_mask())) < (right.bitset() & (~sign_mask()))) {
 				return true;
 			}
+
+			return false;
 		}
 
 		bool operator>(const float_& right) const {
@@ -1007,6 +1091,10 @@ namespace calculation {
 		}
 
 		float_ operator*(const float_& right) const {
+			if (iszero(*this) || iszero(right)) {
+				return float_{ zero() };
+			}
+
 			// this_sign = this_sign * right_sign
 			auto this_sign = _Mybitset & sign_mask();
 			auto right_sign = right.bitset() & sign_mask();
@@ -1046,6 +1134,9 @@ namespace calculation {
 			auto this_sign = _Mybitset & sign_mask();
 			auto right_sign = right.bitset() & sign_mask();
 			this_sign ^= right_sign;
+			if (iszero(right)) {
+				return float_{ this_sign | infinite() };
+			}
 
 			auto this_exponent = (_Mybitset & exponent_mask());
 			auto right_exponent = (right.bitset() & exponent_mask());
@@ -1055,15 +1146,19 @@ namespace calculation {
 			auto this_significant = std::bitset<bits>(0);
 			auto dividend = (_Mybitset & mantissa_mask()) | hidden_significant();
 			auto divisor = (right.bitset() & mantissa_mask()) | hidden_significant();
-			size_t offset = mantissa_bits - 1;
-			do {
-				dividend <<= 1;
-
+			size_t offset = mantissa_bits;// contains hidden-significant
+			while (true) {
 				if (dividend >= divisor) {
 					this_significant |= (std::bitset<bits>(1) << offset);
 					dividend -= divisor;
 				}
-			} while (--offset != size_t(-1));
+
+				if (--offset == size_t(-1)) {
+					break;
+				}
+
+				dividend <<= 1;
+			}
 
 			//  normalize significant-bits and exponent-bits
 			const auto exp2_one = std::bitset<bits>(1) << exponent_offset_bits;
@@ -1112,13 +1207,13 @@ namespace calculation {
 		static float_ floor(const float_& left) {
 			const auto zero_exponent = exponent_bias();
 
-			// 1.010101010111... * exp2(0), check only fraction
+			// only fraction, 1.010101010111... * exp2(0)
 			auto left_exponent = left.bitset() & exponent_mask();
 			if ( left_exponent < zero_exponent ) {
 				return float_();
 			}
 
-			// 1010101010111... * exp2(exponent - mantissa_bits), check only integer
+			// check only integer, 1010101010111... * exp2(exponent - mantissa_bits), 
 			auto exp2_mantissa_bits = std::bitset<bits>(mantissa_bits) << exponent_offset_bits;
 			auto truncated_exponent = left_exponent - exp2_mantissa_bits;
 			if ( truncated_exponent >= zero_exponent ) {
@@ -1259,62 +1354,65 @@ namespace calculation {
 			return exponent_mask();
 		}
 	public:
-		std::bitset<bits> _Mybitset;
+		union {
+			std::bitset<bits> _Mybitset;
+			float _Myfp;
+		};
 		std::bitset<bits>& bitset() { return _Mybitset; }
 		const std::bitset<bits>& bitset() const { return _Mybitset; }
 		
-		float_() = default;
+		float_() : _Myfp() {}
 		float_(const float_&) = default;
 		float_(float_&&) = default;
 		template<size_t Mn,size_t En>
 		float_(const float_<Mn,En>& other) : _Mybitset(reinterpret_cast<const std::bitset<bits>&>( _Mybase(other) )) {}
 		
-		float_(float other) : _Mybitset(reinterpret_cast<const std::bitset<bits>&>( other )) {}
-		float_(double other) : float_(static_cast<float>(other)) {}
-		float_(int other) : float_(static_cast<float>(other)) {}
-		float_(long long other) : float_(static_cast<float>(other)) {}
-		float_(unsigned int other) : float_(static_cast<float>(other)) {}
-		float_(unsigned long long other) : float_(static_cast<float>(other)) {}
-		operator float() const { return reinterpret_cast<const float&>(_Mybitset); }
-		operator double() const { return static_cast<double>(this->operator float()); }
-		operator int() const { return static_cast<int>(this->operator float()); }
-		operator long long() const { return static_cast<long long>(this->operator float()); }
-		operator unsigned int() const { return static_cast<unsigned int>(this->operator float()); }
-		operator unsigned long long() const { return static_cast<unsigned long long>(this->operator float()); }
+		constexpr float_(float other) : _Myfp(other) {}
+		constexpr explicit float_(double other) : float_(static_cast<float>(other)) {}
+		explicit constexpr float_(int other) : float_(static_cast<float>(other)) {}
+		constexpr explicit float_(long long other) : float_(static_cast<float>(other)) {}
+		constexpr explicit float_(unsigned int other) : float_(static_cast<float>(other)) {}
+		constexpr explicit float_(unsigned long long other) : float_(static_cast<float>(other)) {}
+		constexpr operator float() const { return _Myfp; }
+		constexpr explicit operator double() const { return static_cast<double>(this->operator float()); }
+		constexpr explicit operator int() const { return static_cast<int>(this->operator float()); }
+		constexpr explicit operator long long() const { return static_cast<long long>(this->operator float()); }
+		constexpr explicit operator unsigned int() const { return static_cast<unsigned int>(this->operator float()); }
+		constexpr explicit operator unsigned long long() const { return static_cast<unsigned long long>(this->operator float()); }
 
-		inline bool operator==(float_ right) const {
-			return reinterpret_cast<const float&>(*this) == reinterpret_cast<const float&>(right);
+		inline constexpr bool operator==(float_ right) const {
+			return _Myfp == right._Myfp;
 		}
-		inline bool operator!=(float_ right) const {
+		inline constexpr bool operator!=(float_ right) const {
 			return !(*this == right);
 		}
-		inline bool operator<(float_ right) const {
-			return reinterpret_cast<const float&>(*this) < reinterpret_cast<const float&>(right);
+		inline constexpr bool operator<(float_ right) const {
+			return _Myfp < right._Myfp;
 		}
-		inline bool operator>(float_ right) const {
+		inline constexpr bool operator>(float_ right) const {
 			return right < *this;
 		}
-		inline bool operator<=(float_ right) const {
+		inline constexpr bool operator<=(float_ right) const {
 			return !(*this > right);
 		}
-		inline bool operator>=(float_ right) const {
+		inline constexpr bool operator>=(float_ right) const {
 			return !(*this < right);
 		}
 
-		inline float_ operator-() const {
-			return float_( - reinterpret_cast<const float&>(*this) );
+		inline constexpr float_ operator-() const {
+			return float_( -_Myfp );
 		}
-		inline float_ operator+(float_ right) const {
-			return float_( reinterpret_cast<const float&>(*this) + reinterpret_cast<const float&>(right) );
+		inline constexpr float_ operator+(float_ right) const {
+			return float_( _Myfp + right._Myfp );
 		}
-		inline float_ operator-(float_ right) const {
-			return float_( reinterpret_cast<const float&>(*this) - reinterpret_cast<const float&>(right) );
+		inline constexpr float_ operator-(float_ right) const {
+			return float_( _Myfp - right._Myfp );
 		}
-		inline float_ operator*(float_ right) const {
-			return float_( reinterpret_cast<const float&>(*this) * reinterpret_cast<const float&>(right) );
+		inline constexpr float_ operator*(float_ right) const {
+			return float_( _Myfp * right._Myfp );
 		}
-		inline float_ operator/(float_ right) const {
-			return float_( reinterpret_cast<const float&>(*this) / reinterpret_cast<const float&>(right) );
+		inline constexpr float_ operator/(float_ right) const {
+			return float_( _Myfp / right._Myfp );
 		}
 
 		inline float_ operator+=(float_ right) {
@@ -1433,62 +1531,65 @@ namespace calculation {
 			return exponent_mask();
 		}
 	public:
-		std::bitset<bits> _Mybitset;
+		union {
+			std::bitset<bits> _Mybitset;
+			double _Myfp;
+		};
 		std::bitset<bits>& bitset() { return _Mybitset; }
 		const std::bitset<bits>& bitset() const { return _Mybitset; }
 		
-		float_() = default;
+		float_() : _Myfp() {}
 		float_(const float_&) = default;
 		float_(float_&&) = default;
 		template<size_t Mn,size_t En>
 		float_(const float_<Mn, En>& other) : _Mybitset(reinterpret_cast<const std::bitset<bits>&>( _Mybase(other) )) {}
 		
-		float_(double other) : _Mybitset(reinterpret_cast<const std::bitset<bits>&>(other)) {}
-		float_(float other) : float_(static_cast<double>(other)) {}
-		float_(int other) : float_(static_cast<double>(other)) {}
-		float_(long long other) : float_(static_cast<double>(other)) {}
-		float_(unsigned int other) : float_(static_cast<double>(other)) {}
-		float_(unsigned long long other) : float_(static_cast<double>(other)) {}
-		operator double() const { return reinterpret_cast<const double&>(_Mybitset); }
-		operator float() const { return  static_cast<float>(this->operator double()); }
-		operator int() const { return static_cast<int>(this->operator double()); }
-		operator long long() const { return static_cast<long long>(this->operator double()); }
-		operator unsigned int() const { return static_cast<unsigned int>(this->operator double()); }
-		operator unsigned long long() const { return static_cast<unsigned long long>(this->operator double()); }
+		constexpr float_(double other) : _Myfp(other) {}
+		constexpr explicit float_(float other) : float_(static_cast<double>(other)) {}
+		constexpr explicit float_(int other) : float_(static_cast<double>(other)) {}
+		constexpr explicit float_(long long other) : float_(static_cast<double>(other)) {}
+		constexpr explicit float_(unsigned int other) : float_(static_cast<double>(other)) {}
+		constexpr explicit float_(unsigned long long other) : float_(static_cast<double>(other)) {}
+		constexpr operator double() const { return _Myfp; }
+		constexpr explicit operator float() const { return  static_cast<float>(this->operator double()); }
+		constexpr explicit operator int() const { return static_cast<int>(this->operator double()); }
+		constexpr explicit operator long long() const { return static_cast<long long>(this->operator double()); }
+		constexpr explicit operator unsigned int() const { return static_cast<unsigned int>(this->operator double()); }
+		constexpr explicit operator unsigned long long() const { return static_cast<unsigned long long>(this->operator double()); }
 
-		inline bool operator==(float_ right) const {
-			return reinterpret_cast<const double&>(*this) == reinterpret_cast<const double&>(right);
+		inline constexpr bool operator==(float_ right) const {
+			return _Myfp == right._Myfp;
 		}
-		inline bool operator!=(float_ right) const {
+		inline constexpr bool operator!=(float_ right) const {
 			return !(*this == right);
 		}
-		inline bool operator<(float_ right) const {
-			return reinterpret_cast<const double&>(*this) < reinterpret_cast<const double&>(right);
+		inline constexpr bool operator<(float_ right) const {
+			return _Myfp < right._Myfp;
 		}
-		inline bool operator>(float_ right) const {
+		inline constexpr bool operator>(float_ right) const {
 			return right < *this;
 		}
-		inline bool operator<=(float_ right) const {
+		inline constexpr bool operator<=(float_ right) const {
 			return !(*this > right);
 		}
-		inline bool operator>=(float_ right) const {
+		inline constexpr bool operator>=(float_ right) const {
 			return !(*this < right);
 		}
 
-		inline float_ operator-() const {
-			return float_( - reinterpret_cast<const double&>(*this) );
+		inline constexpr float_ operator-() const {
+			return float_( -_Myfp );
 		}
-		inline float_ operator+(float_ right) const {
-			return float_( reinterpret_cast<const double&>(*this) + reinterpret_cast<const double&>(right) );
+		inline constexpr float_ operator+(float_ right) const {
+			return float_( _Myfp + right._Myfp );
 		}
-		inline float_ operator-(float_ right) const {
-			return float_( reinterpret_cast<const double&>(*this) - reinterpret_cast<const double&>(right) );
+		inline constexpr float_ operator-(float_ right) const {
+			return float_( _Myfp - right._Myfp );
 		}
-		inline float_ operator*(float_ right) const {
-			return float_( reinterpret_cast<const double&>(*this) * reinterpret_cast<const double&>(right) );
+		inline constexpr float_ operator*(float_ right) const {
+			return float_( _Myfp * right._Myfp );
 		}
-		inline float_ operator/(float_ right) const {
-			return float_( reinterpret_cast<const double&>(*this) / reinterpret_cast<const double&>(right) );
+		inline constexpr float_ operator/(float_ right) const {
+			return float_( _Myfp / right._Myfp );
 		}
 
 		inline float_ operator+=(float_ right) {
@@ -1663,8 +1764,15 @@ namespace calculation {
 	}
 
 	// { dependence on calculation::decimal }
-	template<size_t Mn,size_t En>
+	template<size_t Mn, size_t En>
 	std::string to_string(float_<Mn,En> _Source) {
+		if (float_<Mn, En>::iszero(_Source)) {
+			return "0.";
+		} 
+		if (float_<Mn, En>::isinf(_Source)) {
+			return (_Source < float_<Mn,En>(0) ? "-inf" : "inf"); 
+		}
+		
 		decimal _Dest = decimal("0.");
 
 		// _Dest.numbers = significant * 2^(mantissa_bits)
@@ -1680,7 +1788,8 @@ namespace calculation {
 		// correct exponent
 		auto _Zero = std::bitset<Mn+En+1>(0);
 		auto _One = std::bitset<Mn+En+1>(1) << _Source.exponent_offset_bits;
-		auto _Exponent = (_Source.bitset() & _Source.exponent_mask()) - (std::bitset<Mn+En+1>(_Source.mantissa_bits) << _Source.exponent_offset_bits);// errro if isinf
+		auto _Exponent = _Source.bitset() & _Source.exponent_mask();
+		_Exponent -= std::bitset<Mn + En + 1>(_Source.mantissa_bits) << _Source.exponent_offset_bits;// errro if isinf
 		if (_Exponent > _Source.exponent_bias()) {
 			do {
 				_Dest.mulev2();
@@ -1701,6 +1810,11 @@ namespace calculation {
 			static_cast<size_t>( ::floor(::log(2)/::log(10) * (_Source.mantissa_bits+1)) );
 		_Dest.reset_precision( desired_significant_count );
 		return _Dest.to_string();
+	}
+
+	template<size_t Mn, size_t En> inline
+	std::ostream& operator<<(std::ostream& _Ostr, float_<Mn,En> _Fp) {
+		return (_Ostr << to_string(_Fp));
 	}
 
 	// symbol operators
