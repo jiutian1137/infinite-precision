@@ -831,14 +831,16 @@ namespace calculation {
 			}
 		}
 		
-		explicit 
 		float_(float ohter) : float_(reinterpret_cast<const float_<23,8>&>(ohter)) {}
 		
-		explicit 
 		float_(double ohter) : float_(reinterpret_cast<const float_<52,11>&>(ohter)) {}
 
-		explicit
 		float_(unsigned int other) {
+			if (other == 0U) {
+				_Mybitset = zero();
+				return;
+			}
+
 			// 000000000.00000000000010100100010 * pow(2,mantissa_bits)
 			auto this_exponent = exponent_bias() + (std::bitset<bits>(mantissa_bits) << exponent_offset_bits);
 			auto this_significant = std::bitset<bits>(other);
@@ -861,8 +863,12 @@ namespace calculation {
 			_Mybitset = this_exponent | (this_significant & mantissa_mask());
 		}
 
-		explicit
 		float_(unsigned long long other) {
+			if (other == 0ULL) {
+				_Mybitset = zero();
+				return;
+			}
+
 			// 1expexpexp.mantissamantissa * pow(2,mantissa_bits)
 			auto this_exponent = exponent_bias() + (std::bitset<bits>(mantissa_bits) << exponent_offset_bits);
 			auto this_significant = std::bitset<bits>(other);
@@ -885,12 +891,10 @@ namespace calculation {
 			_Mybitset = this_exponent | (this_significant & mantissa_mask());
 		}
 
-		explicit 
 		float_(int other) : float_(other < 0 ? static_cast<unsigned int>(-other) : static_cast<unsigned int>(other)) {
 			_Mybitset |= std::bitset<bits>(other < 0) << sign_offset_bits;
 		}
 
-		explicit 
 		float_(long long other) : float_(other < 0 ? static_cast<unsigned long long>(-other) : static_cast<unsigned long long>(other)) {
 			_Mybitset |= std::bitset<bits>(other < 0) << sign_offset_bits;
 		}
@@ -1077,7 +1081,9 @@ namespace calculation {
 					this_exponent -= exp2_one;
 				}
 			} else {
-				while ( (this_significant & hidden_significant()).none() ) {
+				// hidden-significant && (exponent|sign-bits) == 0
+				const auto highbit_mask = ~mantissa_mask();
+				while ( (this_significant & highbit_mask) != hidden_significant() ) {
 					this_significant >>= 1;
 					this_exponent += exp2_one;
 				}
@@ -1120,7 +1126,9 @@ namespace calculation {
 					this_exponent -= exp2_one;
 				}
 			} else {
-				while ( (this_significant & hidden_significant_ex).none() ) {
+				// hidden-significant && (exponent|sign-bits) == 0
+				const auto highbit_mask = ~(hidden_significant_ex - 1);
+				while ( (this_significant & highbit_mask) != hidden_significant_ex ) {
 					this_significant >>= 1;
 					this_exponent += exp2_one;
 				}
@@ -1134,7 +1142,10 @@ namespace calculation {
 			auto this_sign = _Mybitset & sign_mask();
 			auto right_sign = right.bitset() & sign_mask();
 			this_sign ^= right_sign;
-			if (iszero(right)) {
+			if (iszero(*this)) {
+				return float_{ zero() };
+			}
+			if ( iszero(right) ) {
 				return float_{ this_sign | infinite() };
 			}
 
@@ -1168,7 +1179,9 @@ namespace calculation {
 					this_exponent -= exp2_one;
 				}
 			} else {
-				while ( (this_significant & hidden_significant()).none() ) {
+				// hidden-significant && (exponent|sign-bits) == 0
+				const auto highbit_mask = ~mantissa_mask();
+				while ( (this_significant & highbit_mask) != hidden_significant() ) {
 					this_significant >>= 1;
 					this_exponent += exp2_one;
 				}
@@ -1366,13 +1379,14 @@ namespace calculation {
 		float_(float_&&) = default;
 		template<size_t Mn,size_t En>
 		float_(const float_<Mn,En>& other) : _Mybitset(reinterpret_cast<const std::bitset<bits>&>( _Mybase(other) )) {}
-		
+		float_& operator=(const float_&) = default;
+
 		constexpr float_(float other) : _Myfp(other) {}
-		constexpr explicit float_(double other) : float_(static_cast<float>(other)) {}
-		explicit constexpr float_(int other) : float_(static_cast<float>(other)) {}
-		constexpr explicit float_(long long other) : float_(static_cast<float>(other)) {}
-		constexpr explicit float_(unsigned int other) : float_(static_cast<float>(other)) {}
-		constexpr explicit float_(unsigned long long other) : float_(static_cast<float>(other)) {}
+		constexpr float_(double other) : float_(static_cast<float>(other)) {}
+		constexpr float_(int other) : float_(static_cast<float>(other)) {}
+		constexpr float_(long long other) : float_(static_cast<float>(other)) {}
+		constexpr float_(unsigned int other) : float_(static_cast<float>(other)) {}
+		constexpr float_(unsigned long long other) : float_(static_cast<float>(other)) {}
 		constexpr operator float() const { return _Myfp; }
 		constexpr explicit operator double() const { return static_cast<double>(this->operator float()); }
 		constexpr explicit operator int() const { return static_cast<int>(this->operator float()); }
@@ -1543,13 +1557,14 @@ namespace calculation {
 		float_(float_&&) = default;
 		template<size_t Mn,size_t En>
 		float_(const float_<Mn, En>& other) : _Mybitset(reinterpret_cast<const std::bitset<bits>&>( _Mybase(other) )) {}
-		
+		float_& operator=(const float_&) = default;
+
 		constexpr float_(double other) : _Myfp(other) {}
-		constexpr explicit float_(float other) : float_(static_cast<double>(other)) {}
-		constexpr explicit float_(int other) : float_(static_cast<double>(other)) {}
-		constexpr explicit float_(long long other) : float_(static_cast<double>(other)) {}
-		constexpr explicit float_(unsigned int other) : float_(static_cast<double>(other)) {}
-		constexpr explicit float_(unsigned long long other) : float_(static_cast<double>(other)) {}
+		constexpr float_(float other) : float_(static_cast<double>(other)) {}
+		constexpr float_(int other) : float_(static_cast<double>(other)) {}
+		constexpr float_(long long other) : float_(static_cast<double>(other)) {}
+		constexpr float_(unsigned int other) : float_(static_cast<double>(other)) {}
+		constexpr float_(unsigned long long other) : float_(static_cast<double>(other)) {}
 		constexpr operator double() const { return _Myfp; }
 		constexpr explicit operator float() const { return  static_cast<float>(this->operator double()); }
 		constexpr explicit operator int() const { return static_cast<int>(this->operator double()); }
