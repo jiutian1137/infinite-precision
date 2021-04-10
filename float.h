@@ -1,12 +1,13 @@
-/* clmagic/calculation/fundamental/float.h:{
-  Author:"LongJiangnan",
-  Date:"2019-2021",
-  Owner:"LongJiangnan",
-  License:"PIO(Please identify the Owner)",
-  Reference:["https://www.rfwireless-world.com/Tutorials/floating-point-tutorial.html",
-       "https://github.com/gcc-mirror/gcc/blob/master/gcc/real.c"
-       "https://www.exploringbinary.com/binary-division/"],
-} */
+/*{ "clmagic/calculation/fundamental/float":{
+  "Author": "LongJiangnan",
+  "Date": "2019-2021",
+  "License": "Please identify Owner",
+  "Reference": [
+    "https://www.rfwireless-world.com/Tutorials/floating-point-tutorial.html",
+    "https://github.com/gcc-mirror/gcc/blob/master/gcc/real.c",
+    "https://www.exploringbinary.com/binary-division/"
+  ]
+} }*/
 #pragma once
 
 #include <bitset>
@@ -474,6 +475,10 @@ namespace calculation {
 			_Mybitset = this_exponent | (this_significant & mantissa_mask());
 		}
 
+		floatX(bool other) {
+			abort();
+		}
+
 		floatX(int other) : floatX(other < 0 ? static_cast<unsigned int>(-other) : static_cast<unsigned int>(other)) {
 			_Mybitset |= std::bitset<bits>(other < 0) << sign_offset_bits;
 		}
@@ -493,6 +498,18 @@ namespace calculation {
 		}
 
 		explicit operator long double() const {
+			abort();
+		}
+
+		explicit operator bool() const {
+			return iszero(*this) ? false : true;
+		}
+
+		explicit operator int() const {
+			abort();
+		}
+
+		explicit operator long long() const {
 			abort();
 		}
 
@@ -548,14 +565,6 @@ namespace calculation {
 
 			auto dest = std::bitset_cast<sizeof(unsigned long long)*8>(this_significant);
 			return reinterpret_cast<const unsigned long long&>(dest);
-		}
-		
-		explicit operator int() const {
-			abort();
-		}
-
-		explicit operator long long() const {
-			abort();
 		}
 
 		template<typename Ty> 
@@ -776,25 +785,33 @@ namespace calculation {
 
 			return floatX{ this_sign | this_exponent | (this_significant & mantissa_mask()) };
 		}
+
+		floatX operator%(const floatX& right) const {
+			abort();
+		}
 		
-		floatX operator+=(const floatX& right) {
+		floatX& operator+=(const floatX& right) {
 			*this = *this + right;
 			return *this;
 		}
 
-		floatX operator-=(const floatX& right) {
+		floatX& operator-=(const floatX& right) {
 			*this = *this - right;
 			return *this;
 		}
 
-		floatX operator*=(const floatX& right) {
+		floatX& operator*=(const floatX& right) {
 			*this = *this * right;
 			return *this;
 		}
 
-		floatX operator/=(const floatX& right) {
+		floatX& operator/=(const floatX& right) {
 			*this = *this / right;
 			return *this;
+		}
+
+		floatX& operator%=(const floatX& right) {
+			abort();
 		}
 
 		// numeric functions
@@ -900,22 +917,22 @@ namespace calculation {
 		}
 		
 		static constexpr floatX zero() {
-			return floatX(0.0f);
+			return floatX{ 0.0f };
 		}
 		static constexpr floatX epsilon() {
-			return floatX(1.192092896e-07F);
+			return floatX{ 1.192092896e-07F };
 			// 0b00110100000000000000000000000000
 		}
 		static constexpr floatX infinity() {
-			return __builtin_huge_valf();
+			return floatX{ __builtin_huge_valf() };
 			//0b01111111100000000000000000000000
 		}
 		static constexpr floatX quiet_NaN() {
-			return floatX(__builtin_nanf("0"));
+			return floatX{ __builtin_nanf("0") };
 			//0b01111111110000000000000000000000
 		}
 		static constexpr floatX signaling_NaN() {
-			return floatX(__builtin_nanf("1"));
+			return floatX{ __builtin_nanf("1") };
 			//0b01111111110000000000000000000001
 		}
 	public:
@@ -934,6 +951,7 @@ namespace calculation {
 		constexpr floatX(float other) : _Myfp(other) {}
 		constexpr floatX(double other) : floatX(static_cast<float>(other)) {}
 		constexpr floatX(long double other) : floatX(static_cast<float>(other)) {}
+		constexpr floatX(bool other) : floatX(static_cast<float>(other)) {}
 		constexpr floatX(int other) : floatX(static_cast<float>(other)) {}
 		constexpr floatX(long long other) : floatX(static_cast<float>(other)) {}
 		constexpr floatX(unsigned int other) : floatX(static_cast<float>(other)) {}
@@ -941,6 +959,7 @@ namespace calculation {
 		constexpr operator float() const { return _Myfp; }
 		constexpr explicit operator double() const { return static_cast<double>(this->operator float()); }
 		constexpr explicit operator long double() const { return static_cast<long double>(this->operator float()); }
+		constexpr explicit operator bool() const { return static_cast<bool>(this->operator float()); }
 		constexpr explicit operator int() const { return static_cast<int>(this->operator float()); }
 		constexpr explicit operator long long() const { return static_cast<long long>(this->operator float()); }
 		constexpr explicit operator unsigned int() const { return static_cast<unsigned int>(this->operator float()); }
@@ -966,35 +985,43 @@ namespace calculation {
 		}
 
 		inline constexpr floatX operator-() const {
-			return floatX( -_Myfp );
+			return floatX{ -_Myfp };
 		}
 		inline constexpr floatX operator+(floatX right) const {
-			return floatX( _Myfp + right._Myfp );
+			return floatX{ _Myfp + right._Myfp };
 		}
 		inline constexpr floatX operator-(floatX right) const {
-			return floatX( _Myfp - right._Myfp );
+			return floatX{ _Myfp - right._Myfp };
 		}
 		inline constexpr floatX operator*(floatX right) const {
-			return floatX( _Myfp * right._Myfp );
+			return floatX{ _Myfp * right._Myfp };
 		}
 		inline constexpr floatX operator/(floatX right) const {
-			return floatX( _Myfp / right._Myfp );
+			return floatX{ _Myfp / right._Myfp };
+		}
+		inline floatX operator%(floatX right) const {
+			return floatX{ _Myfp - _CSTD floor(_Myfp / right._Myfp) * right._Myfp };
+			//return _CSTD fmodf(_Myfp, right._Myfp);
 		}
 
-		inline floatX operator+=(floatX right) {
+		inline floatX& operator+=(floatX right) {
 			_Myfp += right._Myfp;
 			return *this;
 		}
-		inline floatX operator-=(floatX right) {
+		inline floatX& operator-=(floatX right) {
 			_Myfp -= right._Myfp;
 			return *this;
 		}
-		inline floatX operator*=(floatX right) {
+		inline floatX& operator*=(floatX right) {
 			_Myfp *= right._Myfp;
 			return *this;
 		}
-		inline floatX operator/=(floatX right) {
+		inline floatX& operator/=(floatX right) {
 			_Myfp /= right._Myfp;
+			return *this;
+		}
+		inline floatX& operator%=(floatX right) {
+			_Myfp = _CSTD fmodf(_Myfp, right._Myfp);
 			return *this;
 		}
 	};
@@ -1071,6 +1098,7 @@ namespace calculation {
 		constexpr floatX(double other) : _Myfp(other) {}
 		constexpr floatX(float other) : floatX(static_cast<double>(other)) {}
 		constexpr floatX(long double other) : floatX(static_cast<double>(other)) {}
+		constexpr floatX(bool other) : floatX(static_cast<double>(other)) {}
 		constexpr floatX(int other) : floatX(static_cast<double>(other)) {}
 		constexpr floatX(long long other) : floatX(static_cast<double>(other)) {}
 		constexpr floatX(unsigned int other) : floatX(static_cast<double>(other)) {}
@@ -1078,6 +1106,7 @@ namespace calculation {
 		constexpr operator double() const { return _Myfp; }
 		constexpr explicit operator float() const { return  static_cast<float>(this->operator double()); }
 		constexpr explicit operator long double() const { return static_cast<long double>(this->operator double()); }
+		constexpr explicit operator bool() const { return  static_cast<bool>(this->operator double()); }
 		constexpr explicit operator int() const { return static_cast<int>(this->operator double()); }
 		constexpr explicit operator long long() const { return static_cast<long long>(this->operator double()); }
 		constexpr explicit operator unsigned int() const { return static_cast<unsigned int>(this->operator double()); }
@@ -1117,127 +1146,209 @@ namespace calculation {
 		inline constexpr floatX operator/(floatX right) const {
 			return floatX( _Myfp / right._Myfp );
 		}
+		inline floatX operator%(floatX right) const {
+			return _CSTD fmod(_Myfp, right._Myfp);
+		}
 
-		inline floatX operator+=(floatX right) {
+		inline floatX& operator+=(floatX right) {
 			_Myfp += right._Myfp;
 			return *this;
 		}
-		inline floatX operator-=(floatX right) {
+		inline floatX& operator-=(floatX right) {
 			_Myfp -= right._Myfp;
 			return *this;
 		}
-		inline floatX operator*=(floatX right) {
+		inline floatX& operator*=(floatX right) {
 			_Myfp *= right._Myfp;
 			return *this;
 		}
-		inline floatX operator/=(floatX right) {
+		inline floatX& operator/=(floatX right) {
 			_Myfp /= right._Myfp;
+			return *this;
+		}
+		inline floatX& operator%=(floatX right) {
+			_Myfp = _CSTD fmod(_Myfp, right._Myfp);
 			return *this;
 		}
 	};
 
 	// next_work: { XXXX quadruple-precision-templatespectialation }
 
-	// symbol operators
-#define __float_and_symbol_compare_operator(SYMBOL) \
-	template<size_t m, size_t e> inline           \
-	bool operator==(const floatX<m,e>& left, SYMBOL right) { \
-		return left == floatX<m,e>(right);        \
-	}                                               \
-	template<size_t m, size_t e> inline           \
-	bool operator!=(const floatX<m,e>& left, SYMBOL right) { \
-		return left != floatX<m,e>(right);        \
-	}                                               \
-	template<size_t m, size_t e> inline           \
-	bool operator<(const floatX<m,e>& left, SYMBOL right) { \
-		return left < floatX<m,e>(right);         \
-	}                                               \
-	template<size_t m, size_t e> inline           \
-	bool operator>(const floatX<m,e>& left, SYMBOL right) { \
-		return left > floatX<m,e>(right);         \
-	}                                               \
-	template<size_t m, size_t e> inline           \
-	bool operator<=(const floatX<m,e>& left, SYMBOL right) { \
-		return left <= floatX<m,e>(right);        \
-	}                                               \
-	template<size_t m, size_t e> inline           \
-	bool operator>=(const floatX<m,e>& left, SYMBOL right) { \
-		return left >= floatX<m,e>(right);        \
-	}                                               \
-	template<size_t m, size_t e> inline           \
-	bool operator==(SYMBOL left, const floatX<m,e>& right) { \
-		return floatX<m,e>(left) == right;        \
-	}                                               \
-	template<size_t m, size_t e> inline           \
-	bool operator!=(SYMBOL left, const floatX<m,e>& right) { \
-		return floatX<m,e>(left) != right;        \
-	}                                               \
-	template<size_t m, size_t e> inline           \
-	bool operator<(SYMBOL left, const floatX<m,e>& right) { \
-		return floatX<m,e>(left) < right;         \
-	}                                               \
-	template<size_t m, size_t e> inline           \
-	bool operator>(SYMBOL left, const floatX<m,e>& right) { \
-		return floatX<m,e>(left) > right;         \
-	}                                               \
-	template<size_t m, size_t e> inline           \
-	bool operator<=(SYMBOL left, const floatX<m,e>& right) { \
-		return floatX<m,e>(left) <= right;        \
-	}                                               \
-	template<size_t m, size_t e> inline           \
-	bool operator>=(SYMBOL left, const floatX<m,e>& right) { \
-		return floatX<m,e>(left) >= right;        \
-	}
+#define __calculation_float_operator_with_literal(_OP_, _LITERAL_TYPE_)           \
+	template<size_t m, size_t e> inline                                           \
+	floatX<m,e> operator##_OP_##(const floatX<m,e>& left, _LITERAL_TYPE_ right) { \
+		return left _OP_ static_cast< floatX<m,e> >(right);                       \
+	}   
 
-	__float_and_symbol_compare_operator(int)
-	__float_and_symbol_compare_operator(long long)
-	__float_and_symbol_compare_operator(unsigned int)
-	__float_and_symbol_compare_operator(unsigned long long)
-	__float_and_symbol_compare_operator(float)
-	__float_and_symbol_compare_operator(double)
-	__float_and_symbol_compare_operator(long double)
+#define __calculation_float_operator_with_literal_commutatibity(_OP_, _LITERAL_TYPE_) \
+	template<size_t m, size_t e> inline                                           \
+	floatX<m,e> operator##_OP_##(const floatX<m,e>& left, _LITERAL_TYPE_ right) { \
+		return left _OP_ static_cast< floatX<m,e> >(right);                       \
+	}                                                                             \
+	template<size_t m, size_t e> inline                                           \
+	floatX<m,e> operator##_OP_##(_LITERAL_TYPE_ left, const floatX<m,e>& right) { \
+		return static_cast< floatX<m,e> >(left) _OP_ right;                       \
+	} 
 
-#define __float_and_symbol_arithmetic_operator(SYMBOL) \
-	template<size_t m, size_t e> inline              \
-	floatX<m,e> operator+(const floatX<m,e>& left, SYMBOL right) { \
-		return left + floatX<m,e>(right);            \
-	}                                                  \
-	template<size_t m, size_t e> inline              \
-	floatX<m,e> operator-(const floatX<m,e>& left, SYMBOL right) { \
-		return left - floatX<m,e>(right);            \
-	}                                                  \
-	template<size_t m, size_t e> inline              \
-	floatX<m,e> operator*(const floatX<m,e>& left, SYMBOL right) { \
-		return left * floatX<m,e>(right);            \
-	}                                                  \
-	template<size_t m, size_t e> inline              \
-	floatX<m,e> operator/(const floatX<m,e>& left, SYMBOL right) { \
-		return left / floatX<m,e>(right);            \
-	}                                                  \
-	template<size_t m, size_t e> inline              \
-	floatX<m,e> operator+(SYMBOL left, const floatX<m,e>& right) { \
-		return floatX<m,e>(left) + right;            \
-	}                                                  \
-	template<size_t m, size_t e> inline              \
-	floatX<m,e> operator-(SYMBOL left, const floatX<m,e>& right) { \
-		return floatX<m,e>(left) - right;            \
-	}                                                  \
-	template<size_t m, size_t e> inline              \
-	floatX<m,e> operator*(SYMBOL left, const floatX<m,e>& right) { \
-		return floatX<m,e>(left) * right;            \
-	}                                                  \
-	template<size_t m, size_t e> inline              \
-	floatX<m,e> operator/(SYMBOL left, const floatX<m,e>& right) { \
-		return floatX<m,e>(left) / right;            \
-	}
+#define __calculation_float_lvalueoperator_with_literal(_OP_, _LITERAL_TYPE_)  \
+	template<size_t m, size_t e> inline                                        \
+	floatX<m,e>& operator##_OP_##(floatX<m,e>& left, _LITERAL_TYPE_ right) {   \
+		return left _OP_ static_cast< floatX<m,e> >(right);                    \
+	}   
 
-	__float_and_symbol_arithmetic_operator(int)
-	__float_and_symbol_arithmetic_operator(long long)
-	__float_and_symbol_arithmetic_operator(unsigned int)
-	__float_and_symbol_arithmetic_operator(unsigned long long)
-	__float_and_symbol_arithmetic_operator(float)
-	__float_and_symbol_arithmetic_operator(double)
-	__float_and_symbol_arithmetic_operator(long double)
+#define __calculation_float_comparison_with_literal_commutatibity(_OP_, _LITERAL_TYPE_) \
+	template<size_t m, size_t e> inline                                    \
+	bool operator##_OP_##(const floatX<m,e>& left, _LITERAL_TYPE_ right) { \
+		return left _OP_ static_cast< floatX<m,e> >(right);                \
+	}                                                                      \
+	template<size_t m, size_t e> inline                                    \
+	bool operator##_OP_##(_LITERAL_TYPE_ left, const floatX<m,e>& right) { \
+		return static_cast< floatX<m,e> >(left) _OP_ right;                \
+	} 
+
+	__calculation_float_lvalueoperator_with_literal(+=, float)
+	__calculation_float_lvalueoperator_with_literal(+=, double)
+	__calculation_float_lvalueoperator_with_literal(+=, long double)
+	__calculation_float_lvalueoperator_with_literal(+=, bool)
+	__calculation_float_lvalueoperator_with_literal(+=, int)
+	__calculation_float_lvalueoperator_with_literal(+=, long long)
+	__calculation_float_lvalueoperator_with_literal(+=, unsigned int)
+	__calculation_float_lvalueoperator_with_literal(+=, unsigned long long)
+	__calculation_float_operator_with_literal_commutatibity(+, float)
+	__calculation_float_operator_with_literal_commutatibity(+, double)
+	__calculation_float_operator_with_literal_commutatibity(+, long double)
+	__calculation_float_operator_with_literal_commutatibity(+, bool)
+	__calculation_float_operator_with_literal_commutatibity(+, int)
+	__calculation_float_operator_with_literal_commutatibity(+, long long)
+	__calculation_float_operator_with_literal_commutatibity(+, unsigned int)
+	__calculation_float_operator_with_literal_commutatibity(+, unsigned long long)
+	
+	__calculation_float_lvalueoperator_with_literal(-=, float)
+	__calculation_float_lvalueoperator_with_literal(-=, double)
+	__calculation_float_lvalueoperator_with_literal(-=, long double)
+	__calculation_float_lvalueoperator_with_literal(-=, bool)
+	__calculation_float_lvalueoperator_with_literal(-=, int)
+	__calculation_float_lvalueoperator_with_literal(-=, long long)
+	__calculation_float_lvalueoperator_with_literal(-=, unsigned int)
+	__calculation_float_lvalueoperator_with_literal(-=, unsigned long long)
+	__calculation_float_operator_with_literal_commutatibity(-, float)
+	__calculation_float_operator_with_literal_commutatibity(-, double)
+	__calculation_float_operator_with_literal_commutatibity(-, long double)
+	__calculation_float_operator_with_literal_commutatibity(-, bool)
+	__calculation_float_operator_with_literal_commutatibity(-, int)
+	__calculation_float_operator_with_literal_commutatibity(-, long long)
+	__calculation_float_operator_with_literal_commutatibity(-, unsigned int)
+	__calculation_float_operator_with_literal_commutatibity(-, unsigned long long)
+
+	__calculation_float_lvalueoperator_with_literal(*=, float)
+	__calculation_float_lvalueoperator_with_literal(*=, double)
+	__calculation_float_lvalueoperator_with_literal(*=, long double)
+	__calculation_float_lvalueoperator_with_literal(*=, bool)
+	__calculation_float_lvalueoperator_with_literal(*=, int)
+	__calculation_float_lvalueoperator_with_literal(*=, long long)
+	__calculation_float_lvalueoperator_with_literal(*=, unsigned int)
+	__calculation_float_lvalueoperator_with_literal(*=, unsigned long long)
+	__calculation_float_operator_with_literal_commutatibity(*, float)
+	__calculation_float_operator_with_literal_commutatibity(*, double)
+	__calculation_float_operator_with_literal_commutatibity(*, long double)
+	__calculation_float_operator_with_literal_commutatibity(*, bool)
+	__calculation_float_operator_with_literal_commutatibity(*, int)
+	__calculation_float_operator_with_literal_commutatibity(*, long long)
+	__calculation_float_operator_with_literal_commutatibity(*, unsigned int)
+	__calculation_float_operator_with_literal_commutatibity(*, unsigned long long)
+
+	__calculation_float_lvalueoperator_with_literal(/=, float)
+	__calculation_float_lvalueoperator_with_literal(/=, double)
+	__calculation_float_lvalueoperator_with_literal(/=, long double)
+	__calculation_float_lvalueoperator_with_literal(/=, bool)
+	__calculation_float_lvalueoperator_with_literal(/=, int)
+	__calculation_float_lvalueoperator_with_literal(/=, long long)
+	__calculation_float_lvalueoperator_with_literal(/=, unsigned int)
+	__calculation_float_lvalueoperator_with_literal(/=, unsigned long long)
+	__calculation_float_operator_with_literal_commutatibity(/, float)
+	__calculation_float_operator_with_literal_commutatibity(/, double)
+	__calculation_float_operator_with_literal_commutatibity(/, long double)
+	__calculation_float_operator_with_literal_commutatibity(/, bool)
+	__calculation_float_operator_with_literal_commutatibity(/, int)
+	__calculation_float_operator_with_literal_commutatibity(/, long long)
+	__calculation_float_operator_with_literal_commutatibity(/, unsigned int)
+	__calculation_float_operator_with_literal_commutatibity(/, unsigned long long)
+
+	__calculation_float_lvalueoperator_with_literal(%=, float)
+	__calculation_float_lvalueoperator_with_literal(%=, double)
+	__calculation_float_lvalueoperator_with_literal(%=, long double)
+	__calculation_float_lvalueoperator_with_literal(%=, bool)
+	__calculation_float_lvalueoperator_with_literal(%=, int)
+	__calculation_float_lvalueoperator_with_literal(%=, long long)
+	__calculation_float_lvalueoperator_with_literal(%=, unsigned int)
+	__calculation_float_lvalueoperator_with_literal(%=, unsigned long long)
+	__calculation_float_operator_with_literal_commutatibity(%, float)
+	__calculation_float_operator_with_literal_commutatibity(%, double)
+	__calculation_float_operator_with_literal_commutatibity(%, long double)
+	__calculation_float_operator_with_literal_commutatibity(%, bool)
+	__calculation_float_operator_with_literal_commutatibity(%, int)
+	__calculation_float_operator_with_literal_commutatibity(%, long long)
+	__calculation_float_operator_with_literal_commutatibity(%, unsigned int)
+	__calculation_float_operator_with_literal_commutatibity(%, unsigned long long)
+
+	__calculation_float_comparison_with_literal_commutatibity(==, float)
+	__calculation_float_comparison_with_literal_commutatibity(==, double)
+	__calculation_float_comparison_with_literal_commutatibity(==, long double)
+	__calculation_float_comparison_with_literal_commutatibity(==, bool)
+	__calculation_float_comparison_with_literal_commutatibity(==, int)
+	__calculation_float_comparison_with_literal_commutatibity(==, long long)
+	__calculation_float_comparison_with_literal_commutatibity(==, unsigned int)
+	__calculation_float_comparison_with_literal_commutatibity(==, unsigned long long)
+
+	__calculation_float_comparison_with_literal_commutatibity(!=, float)
+	__calculation_float_comparison_with_literal_commutatibity(!=, double)
+	__calculation_float_comparison_with_literal_commutatibity(!=, long double)
+	__calculation_float_comparison_with_literal_commutatibity(!=, bool)
+	__calculation_float_comparison_with_literal_commutatibity(!=, int)
+	__calculation_float_comparison_with_literal_commutatibity(!=, long long)
+	__calculation_float_comparison_with_literal_commutatibity(!=, unsigned int)
+	__calculation_float_comparison_with_literal_commutatibity(!=, unsigned long long)
+
+	__calculation_float_comparison_with_literal_commutatibity(<, float)
+	__calculation_float_comparison_with_literal_commutatibity(<, double)
+	__calculation_float_comparison_with_literal_commutatibity(<, long double)
+	__calculation_float_comparison_with_literal_commutatibity(<, bool)
+	__calculation_float_comparison_with_literal_commutatibity(<, int)
+	__calculation_float_comparison_with_literal_commutatibity(<, long long)
+	__calculation_float_comparison_with_literal_commutatibity(<, unsigned int)
+	__calculation_float_comparison_with_literal_commutatibity(<, unsigned long long)
+
+	__calculation_float_comparison_with_literal_commutatibity(>, float)
+	__calculation_float_comparison_with_literal_commutatibity(>, double)
+	__calculation_float_comparison_with_literal_commutatibity(>, long double)
+	__calculation_float_comparison_with_literal_commutatibity(>, bool)
+	__calculation_float_comparison_with_literal_commutatibity(>, int)
+	__calculation_float_comparison_with_literal_commutatibity(>, long long)
+	__calculation_float_comparison_with_literal_commutatibity(>, unsigned int)
+	__calculation_float_comparison_with_literal_commutatibity(>, unsigned long long)
+
+	__calculation_float_comparison_with_literal_commutatibity(<=, float)
+	__calculation_float_comparison_with_literal_commutatibity(<=, double)
+	__calculation_float_comparison_with_literal_commutatibity(<=, long double)
+	__calculation_float_comparison_with_literal_commutatibity(<=, bool)
+	__calculation_float_comparison_with_literal_commutatibity(<=, int)
+	__calculation_float_comparison_with_literal_commutatibity(<=, long long)
+	__calculation_float_comparison_with_literal_commutatibity(<=, unsigned int)
+	__calculation_float_comparison_with_literal_commutatibity(<=, unsigned long long)
+
+	__calculation_float_comparison_with_literal_commutatibity(>=, float)
+	__calculation_float_comparison_with_literal_commutatibity(>=, double)
+	__calculation_float_comparison_with_literal_commutatibity(>=, long double)
+	__calculation_float_comparison_with_literal_commutatibity(>=, bool)
+	__calculation_float_comparison_with_literal_commutatibity(>=, int)
+	__calculation_float_comparison_with_literal_commutatibity(>=, long long)
+	__calculation_float_comparison_with_literal_commutatibity(>=, unsigned int)
+	__calculation_float_comparison_with_literal_commutatibity(>=, unsigned long long)
+
+#undef __calculation_float_operator_with_literal
+#undef __calculation_float_operator_with_literal_commutatibity
+#undef __calculation_float_lvalueoperator_with_literal
+#undef __calculation_float_comparison_with_literal_commutatibity
 
 
 	// { (1 + 0.Mantissa) * 2^Exponent * (-1)^Sign }
@@ -1249,17 +1360,9 @@ namespace calculation {
 	// { (1 + 0.Mantissa) * 2^Exponent * (-1)^Sign, GCC/quadmath/ALL }
 	using float128 = floatX<112,15>;
 
-	// { ... }
 	using float256 = floatX<235,20>;
 
-	// { ... }
 	using float512 = floatX<485,26>;
-
-	/* Helper:{
-		MathSymbol: { [int, float, double, ...], These should not be regarded as types, but as symbols },
-		MathType: [float_<...>, integer_<...>, ration<...>, ...]
-	} */
-
 
 	template<size_t m, size_t e> inline
 	bool isinf(const floatX<m,e>& x) {
@@ -1290,7 +1393,7 @@ namespace calculation {
 		return floatX{ x.bitset() & abs_mask };
 	}
 	inline float32 abs(float32 x) {
-		return _CSTD fabsf(x);
+		return float32{ _CSTD fabsf(x) };
 	}
 	inline float64 abs(float64 x) {
 		return _CSTD fabs(x);
@@ -1301,7 +1404,7 @@ namespace calculation {
 		return floatX<m, e>::floor(x);
 	}
 	inline float32 floor(float32 x) {
-		return _CSTD floorf(x);
+		return float32{ _CSTD floorf(x) };
 	}
 	inline float64 floor(float64 x) {
 		return _CSTD floor(x);
@@ -1323,7 +1426,7 @@ namespace calculation {
 		return floatX<m,e>::ceil(x);
 	}
 	inline float32 ceil(float32 x) {
-		return _CSTD ceilf(x);
+		return float32{ _CSTD ceilf(x) };
 	}
 	inline float64 ceil(float64 x) {
 		return _CSTD ceil(x);
@@ -1334,7 +1437,7 @@ namespace calculation {
 		return floatX<m,e>::round(x);
 	}
 	inline float32 round(float32 x) {
-		return _CSTD roundf(x);
+		return float32{ _CSTD roundf(x) };
 	}
 	inline float64 round(float64 x) {
 		return _CSTD round(x);
@@ -1359,26 +1462,28 @@ namespace calculation {
             return pow(1/x,-power);
         }
 	}
-	template<size_t m, size_t e> inline
-	floatX<m,e> pow(const floatX<m,e>& left, const floatX<m,e>& right) {
-		return floatX<m,e>::pow(left, right);
+	inline float32 pow(float32 x, int power) {
+		if (power == 2) {
+			return x * x;
+		}
+		return float32{ _CSTD powf(static_cast<float>(x), static_cast<float>(power)) };
 	}
-	inline float32 pow(float32 x, float32 power) {
-		return _CSTD powf(x, power);
-	}
-	inline float64 pow(float64 x, float64 power) {
-		return _CSTD pow(x, power);
+	inline float64 pow(float64 x, int power) {
+		if (power == 2) {
+			return x * x;
+		}
+		return _CSTD pow(x, static_cast<double>(power));
 	}
 
 	template<size_t m, size_t e> inline
-	floatX<m,e> mod(const floatX<m,e>& left, const floatX<m,e>& right) {
+	floatX<m,e> pow(const floatX<m,e>& left, const floatX<m,e>& right) {
 		abort();
 	}
-	inline float32 mod(float32 x, float32 divisor) {
-		return _CSTD fmodf(x, divisor);
+	inline float32 pow(float32 x, float32 power) {
+		return float32{ _CSTD powf(static_cast<float>(x), static_cast<float>(power)) };
 	}
-	inline float64 mod(float64 x, float64 divisor) {
-		return _CSTD fmod(x, divisor);
+	inline float64 pow(float64 x, float64 power) {
+		return _CSTD pow(x, power);
 	}
 
 	template<size_t m, size_t e> inline
@@ -1386,7 +1491,7 @@ namespace calculation {
 		abort();
 	}
 	inline float32 exp(float32 x) {
-		return _CSTD expf(x);
+		return float32{ _CSTD expf(static_cast<float>(x)) };
 	}
 	inline float64 exp(float64 x) {
 		return _CSTD exp(x);
@@ -1397,7 +1502,7 @@ namespace calculation {
 		abort();
 	}
 	inline float32 log(float32 x) {
-		return _CSTD logf(x);
+		return float32{ _CSTD logf(static_cast<float>(x)) };
 	}
 	inline float64 log(float64 x) {
 		return _CSTD log(x);
@@ -1418,6 +1523,7 @@ namespace calculation {
 			xi >>= 1;
 				// add (exponent_bias + 1) / 2 * pow(2, mantissa_bits)
 			xi += std::bitset<Float::bits>(1) << (Float::exponent_bits - 2 + Float::mantissa_bits);
+			
 			size_t counter = 100;// needs to be improved
 			Float y = xi;
 			Float ym1;
@@ -1433,10 +1539,9 @@ namespace calculation {
 		} else   /* x <  0 */{
 			return Float::quiet_NaN();
 		}
-
 	}
 	inline float32 sqrt(float32 x) {
-		return _CSTD sqrtf(x);
+		return float32{ _CSTD sqrtf(x) };
 	}
 	inline float64 sqrt(float64 x) {
 		return _CSTD sqrt(x);
@@ -1456,24 +1561,23 @@ namespace calculation {
 			Float yyy = y * y * y;
 			factor = (yyy + x + x) / (yyy + yyy + x);
 			y *= factor;// y_next = y * (pow(y,3) + 2*x) / (2*pow(y,3) + x)
-		} while (--counter && abs(1 - factor) > Float::epsilon());
+		} while (--counter && abs(factor - 1) > Float::epsilon());
 
 		return std::move(y);
 	}
 	inline float32 cbrt(float32 x) {
-		return _CSTD cbrtf(x);
+		return float32{ _CSTD cbrtf(x) };
 	}
 	inline float64 cbrt(float64 x) {
 		return _CSTD cbrt(x);
 	}
 
-
 	template<size_t m, size_t e> inline
 	floatX<m,e> sin(const floatX<m,e>& x) {
-		return floatX<m,e>::sin(x);
+		abort();
 	}
 	inline float32 sin(float32 x) {
-		return _CSTD sinf(x);
+		return float32{ _CSTD sinf(x) };
 	}
 	inline float64 sin(float64 x) {
 		return _CSTD sin(x);
@@ -1481,10 +1585,10 @@ namespace calculation {
 
 	template<size_t m, size_t e> inline
 	floatX<m,e> cos(const floatX<m,e>& x) {
-		return floatX<m,e>::cos(x);
+		abort();
 	}
 	inline float32 cos(float32 x) {
-		return _CSTD cosf(x);
+		return float32{ _CSTD cosf(x) };
 	}
 	inline float64 cos(float64 x) {
 		return _CSTD cos(x);
@@ -1492,10 +1596,10 @@ namespace calculation {
 
 	template<size_t m, size_t e> inline
 	floatX<m,e> tan(const floatX<m,e>& x) {
-		return floatX<m,e>::tan(x);
+		abort();
 	}
 	inline float32 tan(float32 x) {
-		return _CSTD tanf(x);
+		return float32{ _CSTD tanf(x) };
 	}
 	inline float64 tan(float64 x) {
 		return _CSTD tan(x);
@@ -1503,10 +1607,10 @@ namespace calculation {
 
 	template<size_t m, size_t e> inline
 	floatX<m,e> asin(const floatX<m,e>& x) {
-		return floatX<m,e>::asin(x);
+		abort();
 	}
 	inline float32 asin(float32 x) {
-		return _CSTD asinf(x);
+		return float32{ _CSTD asinf(x) };
 	}
 	inline float64 asin(float64 x) {
 		return _CSTD asin(x);
@@ -1514,10 +1618,10 @@ namespace calculation {
 
 	template<size_t m, size_t e> inline
 	floatX<m,e> acos(const floatX<m,e>& x) {
-		return floatX<m,e>::acos(x);
+		abort();
 	}
 	inline float32 acos(float32 x) {
-		return _CSTD acosf(x);
+		return float32{ _CSTD acosf(x) };
 	}
 	inline float64 acos(float64 x) {
 		return _CSTD acos(x);
@@ -1525,35 +1629,50 @@ namespace calculation {
 
 	template<size_t m, size_t e> inline
 	floatX<m,e> atan(const floatX<m,e>& x) {
-		return floatX<m,e>::atan(x);
+		abort();
 	}
 	inline float32 atan(float32 x) {
-		return _CSTD atanf(x);
+		return float32{ _CSTD atanf(x) };
 	}
 	inline float64 atan(float64 x) {
 		return _CSTD atan(x);
 	}
+
+	template<size_t m, size_t e> inline
+	floatX<m,e> atan2(const floatX<m,e>& y, const floatX<m,e> x) {
+		abort();
+	}
+	inline float32 atan2(float32 y, float32 x) {
+		return float32{ _CSTD atan2f(y, x) };
+	}
+	inline float64 atan2(float64 y, float64 x) {
+		return _CSTD atan2(y, x);
+	}
 }// namespace float_<m,e>
+
 
 #include <limits>
 namespace std {
 	template<size_t m, size_t e>
-	class numeric_limits < calculation::floatX<m,e>> : public _Num_float_base{ // numeric limits for arbitrary type _Ty (say little or nothing)
+	class numeric_limits<calculation::floatX<m,e>> : public _Num_float_base{ // numeric limits for arbitrary type _Ty (say little or nothing)
 	public:
 		_NODISCARD static constexpr calculation::floatX<m,e>(min)() noexcept {
 			return calculation::floatX<m,e>();
 		}
 
-		_NODISCARD static constexpr calculation::floatX<m,e>(max)() noexcept {
-			return calculation::floatX<m, e>();
+		_NODISCARD static calculation::floatX<m,e>(max)() noexcept {
+			if constexpr (std::is_same_v<calculation::floatX<m,e>, calculation::float32>) {
+				return std::numeric_limits<float>::max();
+			}
+			return calculation::floatX<m,e>();
 		}
 
 		_NODISCARD static constexpr calculation::floatX<m,e> lowest() noexcept {
 			return calculation::floatX<m,e>();
 		}
 
-		_NODISCARD static constexpr calculation::floatX<m,e> epsilon() noexcept {
-			return calculation::floatX<m,e>();
+		_NODISCARD static calculation::floatX<m,e> epsilon() noexcept {
+			return calculation::floatX<m,e>::epsilon();
 		}
 
 		_NODISCARD static constexpr calculation::floatX<m,e> round_error() noexcept {
@@ -2026,6 +2145,8 @@ namespace calculation {
 		return (_Ostr << to_string(_Fp));
 	}
 }
+
+
 
 /*Example:{
 #include "clmagic/calculation/fundamental/float.h"
