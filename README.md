@@ -3,6 +3,7 @@ float_&lt;23,8>, float_&lt;52,11>, float_&lt;112,15>,  . . . the library target 
 
 { "clmagic/calculation/fundamental/float":{
   "Author": "LongJiangnan",
+  "Mail": "Jiang1998Nan@outlook.com",
   "Date": "2019-2021",
   "License": "Please identify Author",
   "Reference": [
