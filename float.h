@@ -356,7 +356,7 @@ namespace calculation {
         return;
       }
 
-      using this_float = floatX<m2, e2>;
+      using this_float = floatX<__m, __e>;
       using other_float = floatX<m2, e2>;
       constexpr 
       size_t other_bits = other_float::bits;
@@ -366,35 +366,35 @@ namespace calculation {
       std::bitset<other_bits> other_mantissa = other_bitset & other_float::mantissa_mask();
       std::bitset<bits> _My_mantissa;
       if constexpr ( mantissa_bits < other_float::mantissa_bits ) {
-	    std::bitset<other_bits> shifted_mantissa = other_mantissa >> (other_float::mantissa_bits - mantissa_bits);
-	    std::bitset<bits> casted_shifted_mantissa = std::bitset_cast<bits>(shifted_mantissa);
-	    _My_mantissa = casted_shifted_mantissa;
+        std::bitset<other_bits> shifted_mantissa = other_mantissa >> (other_float::mantissa_bits - mantissa_bits);
+        std::bitset<bits> casted_shifted_mantissa = std::bitset_cast<bits>(shifted_mantissa);
+        _My_mantissa = casted_shifted_mantissa;
       } else if constexpr ( other_float::mantissa_bits < mantissa_bits ) {
-	    std::bitset<bits> casted_mantissa = std::bitset_cast<bits>( other_mantissa );
-	    std::bitset<bits> shifted_casted_mantissa = casted_mantissa << (mantissa_bits - other_float::mantissa_bits);
-	    _My_mantissa = shifted_casted_mantissa;
+        std::bitset<bits> casted_mantissa = std::bitset_cast<bits>( other_mantissa );
+        std::bitset<bits> shifted_casted_mantissa = casted_mantissa << (mantissa_bits - other_float::mantissa_bits);
+        _My_mantissa = shifted_casted_mantissa;
       } else {
-	    _My_mantissa = std::bitset_cast<bits>( other_mantissa );
+        _My_mantissa = std::bitset_cast<bits>( other_mantissa );
       }
 			
       // decompose other_exponent
       std::bitset<other_bits> other_abs_exponent = (other_bitset & other_float::exponent_mask());
       bool other_exponent_sign;
       if ( other_abs_exponent < other_float::exponent_bias() ) {
-	    other_exponent_sign = 1;//negative
-	    other_abs_exponent = other_float::exponent_bias() - other_abs_exponent;
+        other_exponent_sign = 1;//negative
+        other_abs_exponent = other_float::exponent_bias() - other_abs_exponent;
       } else {
-	    other_exponent_sign = 0;//positive
-	    other_abs_exponent -= other_float::exponent_bias();
+        other_exponent_sign = 0;//positive
+        other_abs_exponent -= other_float::exponent_bias();
       }
 			
       // other_exponent is infinity ?, abandon an exponent-upper [-125,128] to [-125,127]
       std::bitset<bits> _My_exponent;
       std::bitset<other_bits> _My_abs_infinite;
       if constexpr ( this_float::exponent_offset_bits < other_float::exponent_offset_bits ) {
-	    std::bitset<other_bits> casted_infinite = std::bitset_cast<other_bits>( this_float::infinity_mask() - this_float::exponent_bias() - 1 );
-	    std::bitset<other_bits> shifted_casted_infinite = casted_infinite << ( other_float::exponent_offset_bits - this_float::exponent_offset_bits );
-	    _My_abs_infinite = shifted_casted_infinite;
+        std::bitset<other_bits> casted_infinite = std::bitset_cast<other_bits>( this_float::infinity_mask() - this_float::exponent_bias() - 1 );
+        std::bitset<other_bits> shifted_casted_infinite = casted_infinite << ( other_float::exponent_offset_bits - this_float::exponent_offset_bits );
+        _My_abs_infinite = shifted_casted_infinite;
       } else if constexpr ( this_float::exponent_offset_bits > other_float::exponent_offset_bits ) {
         std::bitset<bits> shifted_infinite = (infinity_mask() - exponent_bias() - 1) >> (exponent_offset_bits - other_float::exponent_offset_bits);
         std::bitset<other_bits> casted_shifted_infinite = std::bitset_cast<other_bits>(shifted_infinite);
@@ -404,20 +404,19 @@ namespace calculation {
       }
 
       if (_My_abs_infinite < other_abs_exponent) {
-	    _My_exponent = infinity_mask();
+        _My_exponent = infinity_mask();
       } else {
-
-	    // _My_exponent = shifted(other_exponent)
-	    if constexpr ( exponent_offset_bits < other_float::exponent_offset_bits ) {
-		  std::bitset<other_bits> shifted_exponent = other_abs_exponent >> (other_float::exponent_offset_bits - exponent_offset_bits);
-		  std::bitset<bits> casted_shifted_exponent = std::bitset_cast<bits>(shifted_exponent);
-		  _My_exponent = casted_shifted_exponent;
-	    } else if constexpr ( other_float::exponent_offset_bits < exponent_offset_bits ) {
-		  std::bitset<bits> casted_exponent = std::bitset_cast<bits>( other_abs_exponent );
-		  std::bitset<bits> shifted_casted_exponent = casted_exponent << (exponent_offset_bits - other_float::exponent_offset_bits);
-		  _My_exponent = shifted_casted_exponent;
-	    } else {
-		  _My_exponent = std::bitset_cast<bits>( other_abs_exponent );
+        // _My_exponent = shifted(other_exponent)
+        if constexpr ( exponent_offset_bits < other_float::exponent_offset_bits ) {
+          std::bitset<other_bits> shifted_exponent = other_abs_exponent >> (other_float::exponent_offset_bits - exponent_offset_bits);
+          std::bitset<bits> casted_shifted_exponent = std::bitset_cast<bits>(shifted_exponent);
+          _My_exponent = casted_shifted_exponent;
+	      } else if constexpr ( other_float::exponent_offset_bits < exponent_offset_bits ) {
+          std::bitset<bits> casted_exponent = std::bitset_cast<bits>( other_abs_exponent );
+          std::bitset<bits> shifted_casted_exponent = casted_exponent << (exponent_offset_bits - other_float::exponent_offset_bits);
+          _My_exponent = shifted_casted_exponent;
+	      } else {
+          _My_exponent = std::bitset_cast<bits>( other_abs_exponent );
         }
 
         if (other_exponent_sign) {
@@ -725,7 +724,11 @@ namespace calculation {
       // this_exponent = this_exponent + right_exponent
       auto this_exponent = (_Mybitset & exponent_mask());
       auto right_exponent = (right.bitset() & exponent_mask());
-      this_exponent += (right_exponent - exponent_bias());// !!!!
+      if (right_exponent > exponent_bias()) {
+        this_exponent += (right_exponent - exponent_bias());
+      } else if ( right_exponent < exponent_bias()) {
+        this_exponent -= (exponent_bias() - right_exponent);
+      }
 
       // this_significant * exp2(mantissa_bits) = (this_significant * right_significant)
       auto this_significant = std::bitset_cast<bits * 2>( (_Mybitset & mantissa_mask()) | hidden_significant() );
@@ -766,7 +769,11 @@ namespace calculation {
 
       auto this_exponent = (_Mybitset & exponent_mask());
       auto right_exponent = (right.bitset() & exponent_mask());
-      this_exponent -= (right_exponent - exponent_bias());// !!!
+      if (right_exponent > exponent_bias()) { 
+        this_exponent -= (right_exponent - exponent_bias());
+      } else if (right_exponent < exponent_bias()) { 
+        this_exponent += (exponent_bias() - right_exponent);
+      }
 
       auto this_significant = std::bitset<bits>(0);
       auto dividend = (_Mybitset & mantissa_mask()) | hidden_significant();
@@ -831,70 +838,64 @@ namespace calculation {
       abort();
     }
 
-		// numeric functions
+    static floatX abs(const floatX& left) {
+      const auto abs_mask = ~(sign_mask());
+      return floatX{ left.bitset() & abs_mask };
+    }
 
-		static floatX abs(const floatX& left) {
-			const auto abs_mask = ~(sign_mask());
-			return floatX{ left.bitset() & abs_mask };
-		}
+    static floatX floor(const floatX& left) {
+      const auto zero_exponent = exponent_bias();
 
-		static floatX floor(const floatX& left) {
-			const auto zero_exponent = exponent_bias();
+      // only fraction, 1.010101010111... * exp2(0)
+      auto left_exponent = left.bitset() & exponent_mask();
+      if ( left_exponent < zero_exponent ) {
+        return zero();
+      }
 
-			// only fraction, 1.010101010111... * exp2(0)
-			auto left_exponent = left.bitset() & exponent_mask();
-			if ( left_exponent < zero_exponent ) {
-				return zero();
-			}
+      // check only integer, 1010101010111... * exp2(exponent - mantissa_bits), 
+      auto exp2_mantissa_bits = std::bitset<bits>(mantissa_bits) << exponent_offset_bits;
+      auto truncated_exponent = left_exponent - exp2_mantissa_bits;
+      if ( truncated_exponent >= zero_exponent ) {
+        return left;
+      }
 
-			// check only integer, 1010101010111... * exp2(exponent - mantissa_bits), 
-			auto exp2_mantissa_bits = std::bitset<bits>(mantissa_bits) << exponent_offset_bits;
-			auto truncated_exponent = left_exponent - exp2_mantissa_bits;
-			if ( truncated_exponent >= zero_exponent ) {
-				return left;
-			}
+      auto trunc_exponent = zero_exponent - truncated_exponent;
+      size_t trunc_bits = (trunc_exponent >> exponent_offset_bits).to_ulong();
+      auto trunc_mask = ~( ( std::bitset<bits>(1) << trunc_bits ) - 1 );
+      return floatX{ left.bitset() & trunc_mask };
+    }
 
-			auto trunc_exponent = zero_exponent - truncated_exponent;
-			size_t trunc_bits = (trunc_exponent >> exponent_offset_bits).to_ulong();
-			auto trunc_mask = ~( ( std::bitset<bits>(1) << trunc_bits ) - 1 );
-			return floatX{ left.bitset() & trunc_mask };
-		}
+    static floatX fract(const floatX& left) {
+      const auto zero_exponent = exponent_bias();
 
-		static floatX fract(const floatX& left) {
-			const auto zero_exponent = exponent_bias();
+      // 1.010101010111... * exp2(0), check only fraction
+      auto left_exponent = left.bitset() & exponent_mask();
+      if ( left_exponent < zero_exponent ) {
+        return left;
+      }
 
-			// 1.010101010111... * exp2(0), check only fraction
-			auto left_exponent = left.bitset() & exponent_mask();
-			if ( left_exponent < zero_exponent ) {
-				return left;
-			}
+      // 1010101010111... * exp2(exponent - mantissa_bits), check only integer
+      auto exp2_mantissa_bits = std::bitset<bits>(mantissa_bits) << exponent_offset_bits;
+      auto truncated_exponent = left_exponent - exp2_mantissa_bits;
+      if ( truncated_exponent >= zero_exponent ) {
+        return zero();
+      }
 
-			// 1010101010111... * exp2(exponent - mantissa_bits), check only integer
-			auto exp2_mantissa_bits = std::bitset<bits>(mantissa_bits) << exponent_offset_bits;
-			auto truncated_exponent = left_exponent - exp2_mantissa_bits;
-			if ( truncated_exponent >= zero_exponent ) {
-				return zero();
-			}
-
-			auto trunc_exponent = zero_exponent - truncated_exponent;
-			size_t trunc_bits = (trunc_exponent >> exponent_offset_bits).to_ulong();
-			auto fract_mask = (( std::bitset<bits>(1) << trunc_bits ) - 1);
+      auto trunc_exponent = zero_exponent - truncated_exponent;
+      size_t trunc_bits = (trunc_exponent >> exponent_offset_bits).to_ulong();
+      auto fract_mask = (( std::bitset<bits>(1) << trunc_bits ) - 1);
 			
-			//  normalize significant-bits and exponent-bits, assert(larger_shift)
-			auto left_significant = left.bitset() & fract_mask;
-			auto exp2_one = std::bitset<bits>(1) << exponent_offset_bits;
-			assert ( left_significant < hidden_significant() );
-			while ( (left_significant & hidden_significant()) != hidden_significant() ) {
-				left_significant <<= 1;
-				left_exponent -= exp2_one;
-			}
-			return floatX{ (left.bitset() & sign_mask()) | left_exponent | (left_significant & mantissa_mask()) };
-		}
-		
-		static floatX ceil(const floatX& left) {
-			abort();
-		}
-	};
+      //  normalize significant-bits and exponent-bits, assert(larger_shift)
+      auto left_significant = left.bitset() & fract_mask;
+      auto exp2_one = std::bitset<bits>(1) << exponent_offset_bits;
+      assert ( left_significant < hidden_significant() );
+      while ( (left_significant & hidden_significant()) != hidden_significant() ) {
+        left_significant <<= 1;
+        left_exponent -= exp2_one;
+      }
+      return floatX{ (left.bitset() & sign_mask()) | left_exponent | (left_significant & mantissa_mask()) };
+    }		
+  };
 
 	// { IEEE754 single-precision }
 	template<>
@@ -1462,7 +1463,7 @@ namespace calculation {
 
 	template<size_t m, size_t e> inline
 	floatX<m,e> ceil(const floatX<m,e>& x) {
-		return floatX<m,e>::ceil(x);
+		return floor(x) + static_cast<floatX<m,e>>(1);
 	}
 	inline float32 ceil(float32 x) {
 		return float32{ _CSTD ceilf(x) };
@@ -1473,7 +1474,7 @@ namespace calculation {
 
 	template<size_t m, size_t e> inline
 	floatX<m,e> round(const floatX<m,e>& x) {
-		return floatX<m,e>::round(x);
+		return floor(x + static_cast<floatX<m,e>>(0.5));
 	}
 	inline float32 round(float32 x) {
 		return float32{ _CSTD roundf(x) };
