@@ -1,14 +1,14 @@
+#pragma once
 /*{ "clmagic/calculation/fundamental/float":{
   "Author": "LongJiangnan",
   "Date": "2019-2021",
-  "License": "Please identify Owner",
+  "License": "Please identify Author",
   "Reference": [
     "https://www.rfwireless-world.com/Tutorials/floating-point-tutorial.html",
     "https://github.com/gcc-mirror/gcc/blob/master/gcc/real.c",
     "https://www.exploringbinary.com/binary-division/"
   ]
 } }*/
-#pragma once
 
 #include <bitset>
 #include <stdexcept>
@@ -244,7 +244,7 @@ namespace calculation {
 		static constexpr size_t sign_offset_bits = exponent_offset_bits + exponent_bits;
 		
 		static std::bitset<bits> sign_mask() {
-			static auto _Mask = std::bitset<bits>(1) << (bits - 1);
+			static auto _Mask = std::bitset<bits>(1) << sign_offset_bits;
 			return _Mask;
 		}
 		
@@ -623,8 +623,7 @@ namespace calculation {
 		}
 
 		floatX operator-() const {
-			auto neg_sign = std::bitset<bits>(1) << sign_offset_bits;
-			return floatX{ _Mybitset | neg_sign };
+			return floatX{ ((_Mybitset & sign_mask()) ^ sign_mask()) | (_Mybitset & (~sign_mask())) };
 		}
 
 		floatX operator+(const floatX& right) const {
@@ -1180,6 +1179,12 @@ namespace calculation {
 		return left _OP_ static_cast< floatX<m,e> >(right);                       \
 	}   
 
+#define __calculation_float_operator_with_literal2(_OP_, _LITERAL_TYPE_)          \
+	template<size_t m, size_t e> inline                                           \
+	floatX<m,e> operator##_OP_##(_LITERAL_TYPE_ left, const floatX<m,e>& right) { \
+		return static_cast< floatX<m,e> >(left) _OP_ right;                       \
+	}   
+
 #define __calculation_float_operator_with_literal_commutatibity(_OP_, _LITERAL_TYPE_) \
 	template<size_t m, size_t e> inline                                           \
 	floatX<m,e> operator##_OP_##(const floatX<m,e>& left, _LITERAL_TYPE_ right) { \
@@ -1231,14 +1236,22 @@ namespace calculation {
 	__calculation_float_lvalueoperator_with_literal(-=, long long)
 	__calculation_float_lvalueoperator_with_literal(-=, unsigned int)
 	__calculation_float_lvalueoperator_with_literal(-=, unsigned long long)
-	__calculation_float_operator_with_literal_commutatibity(-, float)
-	__calculation_float_operator_with_literal_commutatibity(-, double)
-	__calculation_float_operator_with_literal_commutatibity(-, long double)
-	__calculation_float_operator_with_literal_commutatibity(-, bool)
-	__calculation_float_operator_with_literal_commutatibity(-, int)
-	__calculation_float_operator_with_literal_commutatibity(-, long long)
-	__calculation_float_operator_with_literal_commutatibity(-, unsigned int)
-	__calculation_float_operator_with_literal_commutatibity(-, unsigned long long)
+	__calculation_float_operator_with_literal(-, float)
+	__calculation_float_operator_with_literal2(-, float)
+	__calculation_float_operator_with_literal(-, double)
+	__calculation_float_operator_with_literal2(-, double)
+	__calculation_float_operator_with_literal(-, long double)
+	__calculation_float_operator_with_literal2(-, long double)
+	__calculation_float_operator_with_literal(-, bool)
+	__calculation_float_operator_with_literal2(-, bool)
+	__calculation_float_operator_with_literal(-, int)
+	__calculation_float_operator_with_literal2(-, int)
+	__calculation_float_operator_with_literal(-, long long)
+	__calculation_float_operator_with_literal2(-, long long)
+	__calculation_float_operator_with_literal(-, unsigned int)
+	__calculation_float_operator_with_literal2(-, unsigned int)
+	__calculation_float_operator_with_literal(-, unsigned long long)
+	__calculation_float_operator_with_literal2(-, unsigned long long)
 
 	__calculation_float_lvalueoperator_with_literal(*=, float)
 	__calculation_float_lvalueoperator_with_literal(*=, double)
@@ -1265,14 +1278,22 @@ namespace calculation {
 	__calculation_float_lvalueoperator_with_literal(/=, long long)
 	__calculation_float_lvalueoperator_with_literal(/=, unsigned int)
 	__calculation_float_lvalueoperator_with_literal(/=, unsigned long long)
-	__calculation_float_operator_with_literal_commutatibity(/, float)
-	__calculation_float_operator_with_literal_commutatibity(/, double)
-	__calculation_float_operator_with_literal_commutatibity(/, long double)
-	__calculation_float_operator_with_literal_commutatibity(/, bool)
-	__calculation_float_operator_with_literal_commutatibity(/, int)
-	__calculation_float_operator_with_literal_commutatibity(/, long long)
-	__calculation_float_operator_with_literal_commutatibity(/, unsigned int)
-	__calculation_float_operator_with_literal_commutatibity(/, unsigned long long)
+	__calculation_float_operator_with_literal(/, float)
+	__calculation_float_operator_with_literal2(/, float)
+	__calculation_float_operator_with_literal(/, double)
+	__calculation_float_operator_with_literal2(/, double)
+	__calculation_float_operator_with_literal(/, long double)
+	__calculation_float_operator_with_literal2(/, long double)
+	__calculation_float_operator_with_literal(/, bool)
+	__calculation_float_operator_with_literal2(/, bool)
+	__calculation_float_operator_with_literal(/, int)
+	__calculation_float_operator_with_literal2(/, int)
+	__calculation_float_operator_with_literal(/, long long)
+	__calculation_float_operator_with_literal2(/, long long)
+	__calculation_float_operator_with_literal(/, unsigned int)
+	__calculation_float_operator_with_literal2(/, unsigned int)
+	__calculation_float_operator_with_literal(/, unsigned long long)
+	__calculation_float_operator_with_literal2(/, unsigned long long)
 
 	__calculation_float_lvalueoperator_with_literal(%=, float)
 	__calculation_float_lvalueoperator_with_literal(%=, double)
@@ -1390,7 +1411,7 @@ namespace calculation {
 	template<size_t m, size_t e> inline
 	floatX<m,e> abs(const floatX<m,e>& x) {
 		auto abs_mask = ~( floatX<m,e>::sign_mask() );
-		return floatX{ x.bitset() & abs_mask };
+		return floatX<m,e>{ x.bitset() & abs_mask };
 	}
 	inline float32 abs(float32 x) {
 		return float32{ _CSTD fabsf(x) };
@@ -1401,7 +1422,7 @@ namespace calculation {
 
 	template<size_t m, size_t e> inline
 	floatX<m,e> floor(const floatX<m,e>& x) {
-		return floatX<m, e>::floor(x);
+		return floatX<m,e>::floor(x);
 	}
 	inline float32 floor(float32 x) {
 		return float32{ _CSTD floorf(x) };
@@ -1525,12 +1546,12 @@ namespace calculation {
 			xi += std::bitset<Float::bits>(1) << (Float::exponent_bits - 2 + Float::mantissa_bits);
 			
 			size_t counter = 100;// needs to be improved
-			Float y = xi;
+			Float y = Float(xi);
 			Float ym1;
 			do {
 				ym1 = y;
 				y = (y + x / y) / 2;// y_next = y - (y-x/y)/2
-			} while (--counter && abs(y-ym1) > Float::epsilon()*y);
+			} while (--counter && abs(y-ym1) > Float::epsilon()*max(abs(y),Float::epsilon()));
 
 			return std::move(y);
 		
@@ -1574,7 +1595,8 @@ namespace calculation {
 
 	template<size_t m, size_t e> inline
 	floatX<m,e> sin(const floatX<m,e>& x) {
-		abort();
+		return static_cast<floatX<m,e>>(sin(static_cast<float64>(x)));
+		//abort();
 	}
 	inline float32 sin(float32 x) {
 		return float32{ _CSTD sinf(x) };
@@ -1585,7 +1607,8 @@ namespace calculation {
 
 	template<size_t m, size_t e> inline
 	floatX<m,e> cos(const floatX<m,e>& x) {
-		abort();
+		return static_cast<floatX<m,e>>(cos(static_cast<float64>(x)));
+		//abort();
 	}
 	inline float32 cos(float32 x) {
 		return float32{ _CSTD cosf(x) };
@@ -1649,7 +1672,6 @@ namespace calculation {
 		return _CSTD atan2(y, x);
 	}
 }// namespace float_<m,e>
-
 
 #include <limits>
 namespace std {
@@ -2117,7 +2139,7 @@ namespace calculation {
 		auto _Zero = std::bitset<Float::bits>(0);
 		auto _One = std::bitset<Float::bits>(1) << _Source.exponent_offset_bits;
 		auto _Exponent = _Source.bitset() & _Source.exponent_mask();
-		_Exponent -= std::bitset<Float::bits>(_Source.mantissa_bits) << _Source.exponent_offset_bits;// errro if isinf
+		_Exponent -= std::bitset<Float::bits>(_Source.mantissa_bits) << _Source.exponent_offset_bits;
 		if (_Exponent > _Source.exponent_bias()) {
 			do {
 				_Dest.mulev2();
@@ -2135,7 +2157,7 @@ namespace calculation {
 
 		// set precision
 		size_t desired_significant_count = 
-			static_cast<size_t>( ::floor(::log(2)/::log(10) * (_Source.mantissa_bits+1)) );
+			static_cast<size_t>( ::ceil(::log(2)/::log(10) * (_Source.mantissa_bits+1)) );
 		_Dest.reset_precision( desired_significant_count );
 		return _Dest.to_string();
 	}
@@ -2145,8 +2167,6 @@ namespace calculation {
 		return (_Ostr << to_string(_Fp));
 	}
 }
-
-
 
 /*Example:{
 #include "clmagic/calculation/fundamental/float.h"
