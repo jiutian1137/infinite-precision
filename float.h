@@ -13,805 +13,823 @@
 #include <bitset>
 #include <stdexcept>
 namespace std {
-	// { slower than <add> for 5 times }
-	template<size_t _Bits>
-	std::bitset<_Bits>& operator+=(std::bitset<_Bits>& _Left, std::bitset<_Bits> _Right) {
-		auto _Carry = _Left & _Right;
-		for ( ; _Carry.any(); _Carry = _Left & _Right) {
-			_Left    = _Left ^ _Right;
-			_Right   = _Carry << 1;
-		}
+  // { slower than <add> for 5 times }
+  template<size_t _Bits>
+  std::bitset<_Bits>& operator+=(std::bitset<_Bits>& _Left, std::bitset<_Bits> _Right) {
+/*{
+	00110101                      
++ 00000001                    
+= 00110110                     
+forward_bit = A & B
+forward_bit <<= 1
+result = A | forward_bit
 
-		return (_Left ^= _Right);
-		/*
-			00110101                      
-		+ 00000001                    
-		= 00110110                     
-		forward_bit = A & B
-		forward_bit <<= 1
-		result = A | forward_bit
-
-			10101111 A
-		+ 00110110 B
-		= 11100101 Result
+  10101111 A
++ 00110110 B
+= 11100101 Result
 		 
-			10011001 A ^ B        = A2
-		+ 01001100 (A & B) << 1 = B2
-		= 11100101
+  10011001 A ^ B        = A2
++ 01001100 (A & B) << 1 = B2
+= 11100101
 		  
-			11010101 A2 ^ B2        = A3
-		+ 00010000 (A2 & B2) << 1 = B3
-		= 11100101
+  11010101 A2 ^ B2        = A3
++ 00010000 (A2 & B2) << 1 = B3
+= 11100101
 
-			11000101 A3 ^ B3        = A4
-		+ 00100000 (A3 & B3) << 1 = B4
-		= 11100101
+  11000101 A3 ^ B3        = A4
++ 00100000 (A3 & B3) << 1 = B4
+= 11100101
 
-			00000000 A4 & B4
-			11100101 A4 ^ B4 = Result
-		*/
-	}
+  00000000 A4 & B4
+  11100101 A4 ^ B4 = Result
+}*/
+    auto _Carry = _Left & _Right;
+    for ( ; _Carry.any(); _Carry = _Left & _Right) {
+      _Left  = _Left ^ _Right;
+      _Right = _Carry << 1;
+    }
 
-	// { slower than <sub> for 3.1 times }
-	template<size_t _Bits>
-	std::bitset<_Bits>& operator-=(std::bitset<_Bits>& _Left, std::bitset<_Bits> _Right) {
-		for ( ; ; ) {
-			_Left  = _Left ^ _Right;
-			_Right = _Left & _Right;// (_Left^_Right)&_Right
-			if ( _Right.none() ) {
-				break;
-			}
-		#if _DEBUG
-			if ( _Right.test(_Bits-1) ) {// _Right > _Left
-				throw std::underflow_error("std::operator-=(std::bitset<...>&, std::bitset<...>)");
-			}
-		#endif
-			_Right <<= 1;
-		}
+    return (_Left ^= _Right);
+  }
 
-		return _Left;
-		/*
-			10100111 A
-		  - 10001111 B
-		  = 00011000 Result
+  // { slower than <sub> for 3.1 times }
+  template<size_t _Bits>
+  std::bitset<_Bits>& operator-=(std::bitset<_Bits>& _Left, std::bitset<_Bits> _Right) {
+    for ( ; ; ) {
+      _Left  = _Left ^ _Right;
+      _Right = _Left & _Right;// (_Left^_Right)&_Right
+      if ( _Right.none() ) {
+        break;
+      }
+      #if _DEBUG
+      if ( _Right.test(_Bits-1) ) {// _Right > _Left
+        throw std::underflow_error("std::operator-=(std::bitset<...>&, std::bitset<...>)");
+      }
+      #endif
+      _Right <<= 1;
+    }
+
+    return _Left;
+/*
+	10100111 A
+	- 10001111 B
+	= 00011000 Result
 		
-			00101000 A ^ B         = A1
-		  - 00010000 (A1 & B) << 1 = B1
-		  = 24(10digit)
+	00101000 A ^ B         = A1
+	- 00010000 (A1 & B) << 1 = B1
+	= 24(10digit)
 
-			00111000 A1 ^ B1        = A2
-		  - 00100000 (A2 & B1) << 1 = B2
-		  = 24(10digit)
+	00111000 A1 ^ B1        = A2
+	- 00100000 (A2 & B1) << 1 = B2
+	= 24(10digit)
 
-			00011000 A2 ^ B2 = A3 = Result
-			00000000 A3 & B2
-		*/
-		/*
-			00000000 A
-		  - 01001000 B
-		  = -72
+	00011000 A2 ^ B2 = A3 = Result
+	00000000 A3 & B2
+*/
+/*
+	00000000 A
+	- 01001000 B
+	= -72
 	   
-			01001000 A ^ B         = A1
-		  - 10010000 (A1 & B) << 1 = B1
-		  = 72-144(10digit)
+	01001000 A ^ B         = A1
+	- 10010000 (A1 & B) << 1 = B1
+	= 72-144(10digit)
 
-			11011000 A1 ^ B1        = A2
-		  - 00100000 (A2 & B1) << 1 = B2
-		  = 216-32(10digit) error
-		*/
-		/*
-			A^B = A1, A1 must less A if A >= B
-			A^B must eliminate leftmost-bit if A.leftmost-bit == B.leftmost-bit == 1, so B1.test(farleft) == 1 must B > A, 
-		*/
-	}
+	11011000 A1 ^ B1        = A2
+	- 00100000 (A2 & B1) << 1 = B2
+	= 216-32(10digit) error
+*/
+/*
+	A^B = A1, A1 must less A if A >= B
+	A^B must eliminate leftmost-bit if A.leftmost-bit == B.leftmost-bit == 1, so B1.test(farleft) == 1 must B > A, 
+*/
+  }
 
-	template<size_t _Bits>
-	std::bitset<_Bits>& operator*=(std::bitset<_Bits>& _Left, std::bitset<_Bits> _Right) {
-		/*{
-			      10101001 = A
-		        * 10101111 = B
-		------------------
-		         +10101001 = A<<0
-		 	    +10101001  = A<<1
-			   +10101001   = A<<2
-			  +10101001    = A<<3
-		     +00000000
-		    +10101001      = A<<5
-		   +00000000
-          +10101001        = A<<7
-		 -----------------
-		= 0111001110000111
-		}*/
-		std::bitset<_Bits> _Temp = _Left;
-		_Left.reset();
+  template<size_t _Bits>
+  std::bitset<_Bits>& operator*=(std::bitset<_Bits>& _Left, std::bitset<_Bits> _Right) {
+/*{
+          10101001 = A
+        * 10101111 = B
+------------------
+         +10101001 = A<<0
+        +10101001  = A<<1
+       +10101001   = A<<2
+      +10101001    = A<<3
+     +00000000
+    +10101001      = A<<5
+   +00000000
+  +10101001        = A<<7
+------------------
+= 0111001110000111
+}*/
+    std::bitset<_Bits> _Temp = _Left;
+    _Left.reset();
 		
-		while (_Right.any()) {
-			if (_Right.test(0)) {
-				_Left += _Temp;
-			}
-		#if _DEBUG
-			if ( _Temp.test(_Bits - 1) ) {
-				throw std::overflow_error("std::operator*=(std::bitset<...>&, std::bitset<...>)");
-			}
-		#endif
-			_Temp <<= 1;
-			_Right >>= 1;
-		}
+    while (_Right.any()) {
+      if (_Right.test(0)) {
+        _Left += _Temp;
+      }
+      #if _DEBUG
+      if ( _Temp.test(_Bits - 1) ) {
+        throw std::overflow_error("std::operator*=(std::bitset<...>&, std::bitset<...>)");
+      }
+      #endif
+      _Temp <<= 1;
+      _Right >>= 1;
+    }
 
-		return _Left;
-	}
+    return _Left;
+  }
 
-	template<size_t _Bits> inline
-	std::bitset<_Bits>& operator+=(std::bitset<_Bits>& _Left, const int _Right) noexcept {
-		return _Left += std::bitset<_Bits>(_Right);
-	}
+  template<size_t _Bits> inline
+  std::bitset<_Bits>& operator+=(std::bitset<_Bits>& _Left, const int _Right) noexcept {
+    return _Left += std::bitset<_Bits>(_Right);
+  }
 
-	template<size_t _Bits> inline
-	std::bitset<_Bits>& operator-=(std::bitset<_Bits>& _Left, const int _Right) noexcept {
-		return _Left -= std::bitset<_Bits>(_Right);
-	}
+  template<size_t _Bits> inline
+  std::bitset<_Bits>& operator-=(std::bitset<_Bits>& _Left, const int _Right) noexcept {
+    return _Left -= std::bitset<_Bits>(_Right);
+  }
 
-	template<size_t _Bits> inline
-	std::bitset<_Bits> operator+(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) noexcept {
-		std::bitset<_Bits> _Ans = _Left;
-		return _Ans += _Right;
-	}
+  template<size_t _Bits> inline
+  std::bitset<_Bits> operator+(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) noexcept {
+    std::bitset<_Bits> _Ans = _Left;
+    return _Ans += _Right;
+  }
 
-	template<size_t _Bits> inline
-	std::bitset<_Bits> operator-(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) noexcept {
-		std::bitset<_Bits> _Ans = _Left;
-		return _Ans -= _Right;
-	}
+  template<size_t _Bits> inline
+  std::bitset<_Bits> operator-(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) noexcept {
+    std::bitset<_Bits> _Ans = _Left;
+    return _Ans -= _Right;
+  }
 
-	template<size_t _Bits> inline
-	std::bitset<_Bits> operator*(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) noexcept {
-		std::bitset<_Bits> _Ans = _Left;
-		return _Ans *= _Right;
-	}
+  template<size_t _Bits> inline
+  std::bitset<_Bits> operator*(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) noexcept {
+    std::bitset<_Bits> _Ans = _Left;
+    return _Ans *= _Right;
+  }
 
-	template<size_t _Bits> inline
-	std::bitset<_Bits> operator+(const std::bitset<_Bits>& _Left, const int _Right) noexcept {
-		std::bitset<_Bits> _Ans = _Left;
-		return _Ans += std::bitset<_Bits>(_Right);
-	}
+  template<size_t _Bits> inline
+  std::bitset<_Bits> operator+(const std::bitset<_Bits>& _Left, const int _Right) noexcept {
+    std::bitset<_Bits> _Ans = _Left;
+    return _Ans += std::bitset<_Bits>(_Right);
+  }
 
-	template<size_t _Bits> inline
-	std::bitset<_Bits> operator-(const std::bitset<_Bits>& _Left, const int _Right) noexcept {
-		std::bitset<_Bits> _Ans = _Left;
-		return _Ans -= std::bitset<_Bits>(_Right);
-	}
+  template<size_t _Bits> inline
+  std::bitset<_Bits> operator-(const std::bitset<_Bits>& _Left, const int _Right) noexcept {
+    std::bitset<_Bits> _Ans = _Left;
+    return _Ans -= std::bitset<_Bits>(_Right);
+  }
 
-	template<size_t _Bits> inline
-	bool operator<(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) {
-		using _Word = typename std::bitset<_Bits>::_Ty;
-		size_t _Words = sizeof(std::bitset<_Bits>) / sizeof(_Word);
-		for (size_t _Wpos = _Words - 1; _Wpos != size_t(-1); --_Wpos) {
-			if (_Left._Getword(_Wpos) != _Right._Getword(_Wpos)) {
-				return _Left._Getword(_Wpos) < _Right._Getword(_Wpos);
-			}
-		}
+  template<size_t _Bits>
+  bool operator<(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) {
+    using _Word = typename std::bitset<_Bits>::_Ty;
+    size_t _Words = sizeof(std::bitset<_Bits>) / sizeof(_Word);
+    for (size_t _Wpos = _Words - 1; _Wpos != size_t(-1); --_Wpos) {
+      if (_Left._Getword(_Wpos) != _Right._Getword(_Wpos)) {
+        return _Left._Getword(_Wpos) < _Right._Getword(_Wpos);
+      }
+    }
 
-		return false;
-		//return _Right != _Left && (_Left - _Right == std::bitset<_Bits>(0));
-	}
+    return false;
+    //return _Right != _Left && (_Left - _Right == std::bitset<_Bits>(0));
+  }
 
-	template<size_t _Bits> inline
-	bool operator>(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) {
-		return _Right < _Left;
-	}
+  template<size_t _Bits> inline
+  bool operator>(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) {
+    return _Right < _Left;
+  }
 
-	template<size_t _Bits> inline
-	bool operator<=(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) {
-		return !(_Left > _Right);
-	}
+  template<size_t _Bits> inline
+  bool operator<=(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) {
+    return !(_Left > _Right);
+  }
 
-	template<size_t _Bits> inline
-	bool operator>=(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) {
-		return !(_Left < _Right);
-	}
+  template<size_t _Bits> inline
+  bool operator>=(const std::bitset<_Bits>& _Left, const std::bitset<_Bits>& _Right) {
+    return !(_Left < _Right);
+  }
 
-	template<size_t _OutBits, size_t _InBits>
-	std::bitset<_OutBits> bitset_cast(const std::bitset<_InBits>& _Source) {
-	if constexpr (_OutBits < _InBits) {
-		return reinterpret_cast<const std::bitset<_OutBits>&>(_Source);
-	} else if constexpr(_InBits < _OutBits) {
-		std::bitset<_OutBits> _Destination;
-		std::copy(reinterpret_cast<const char*>(&_Source), 
-			reinterpret_cast<const char*>(&_Source) + sizeof(_Source), 
-			reinterpret_cast<char*>(&_Destination));
-		return _Destination;
-	} else {
+  template<size_t _OutBits, size_t _InBits>
+  std::bitset<_OutBits> bitset_cast(const std::bitset<_InBits>& _Source) {
+    if constexpr (_OutBits < _InBits) {
+      return reinterpret_cast<const std::bitset<_OutBits>&>(_Source);
+    } else if constexpr(_InBits < _OutBits) {
+      std::bitset<_OutBits> _Destination;
+      std::copy(reinterpret_cast<const char*>(&_Source), 
+                reinterpret_cast<const char*>(&_Source) + sizeof(_Source), 
+                reinterpret_cast<char*>(&_Destination));
+      return _Destination;
+    } else {
 		return _Source;
-	}
-}
+    }
+  }
 }
 
 #include <math.h>
 namespace calculation {
-	// { template float_<MantissaBits, ExponentBits>, (1 + 0.Mantissa) * 2^Exponent * (-1)^Sign }
-	template<size_t __m, size_t __e, bool Isbase = false>
-	class floatX {
-	public:
-		static constexpr size_t mantissa_bits = __m;
-		static constexpr size_t exponent_bits = __e;
-		static constexpr size_t sign_bits = 1;
-		static constexpr size_t bits = mantissa_bits + exponent_bits + sign_bits;
-		static_assert(exponent_bits != 0, "assert(exponent_bits != 0)");
-		static_assert(mantissa_bits != 0, "assert(mantissa_bits != 0)");
+  /*infinite precision floating_point
+  * digit: (1 + 0.Mantissa) * 2^Exponent * (-1)^Sign
+  * __m: MantissaBits
+  * __e: ExponentBits
+  * __m + __e + 1 = Bits
+  */
+  template<size_t __m, size_t __e, bool Isbase = false>
+  class floatX {
+  public:
+    static constexpr size_t mantissa_bits = __m;
+    static constexpr size_t exponent_bits = __e;
+    static constexpr size_t sign_bits = 1;
+    static constexpr size_t bits = mantissa_bits + exponent_bits + sign_bits;
+    static_assert(exponent_bits != 0, "assert(exponent_bits != 0)");
+    static_assert(mantissa_bits != 0, "assert(mantissa_bits != 0)");
 
-		static constexpr size_t mantissa_offset_bits = 0;
-		static constexpr size_t exponent_offset_bits = mantissa_offset_bits + mantissa_bits;
-		static constexpr size_t sign_offset_bits = exponent_offset_bits + exponent_bits;
+    static constexpr size_t mantissa_offset_bits = 0;
+    static constexpr size_t exponent_offset_bits = mantissa_offset_bits + mantissa_bits;
+    static constexpr size_t sign_offset_bits = exponent_offset_bits + exponent_bits;
 		
-		static std::bitset<bits> sign_mask() {
-			static auto _Mask = std::bitset<bits>(1) << sign_offset_bits;
-			return _Mask;
-		}
+    static std::bitset<bits> sign_mask() {
+      static auto _Mask = std::bitset<bits>(1) << sign_offset_bits;
+      return _Mask;
+    }
 		
-		static std::bitset<bits> exponent_mask() {
-			static auto _Mask = ((std::bitset<bits>(1) << exponent_bits) - 1) << exponent_offset_bits;
-			return _Mask;
-		}
+    static std::bitset<bits> exponent_mask() {
+      static auto _Mask = 
+        ( (std::bitset<bits>(1) << exponent_bits) - 1 ) 
+          << exponent_offset_bits;
+      return _Mask;
+    }
 		
-		static std::bitset<bits> mantissa_mask() {
-			static auto _Mask = (std::bitset<bits>(1) << mantissa_bits) - 1 /* << 0 */;
-			return _Mask;
-		}
+    static std::bitset<bits> mantissa_mask() {
+      static auto _Mask = (std::bitset<bits>(1) << mantissa_bits) - 1 /* << 0 */;
+      return _Mask;
+    }
 
-		static std::bitset<bits> hidden_significant() {
-			static auto _Mask = std::bitset<bits>(1) << mantissa_bits;
-			return _Mask;
-		}
+    static std::bitset<bits> hidden_significant() {
+      static auto _Mask = std::bitset<bits>(1) << mantissa_bits;
+      return _Mask;
+    }
 
-		static std::bitset<bits> exponent_bias() {
-			static auto _Exp2_zero = 
-				((std::bitset<bits>(1) << (exponent_bits - 1)) - 1)
-				<< exponent_offset_bits;
-			return _Exp2_zero;
-		}
+    static std::bitset<bits> exponent_bias() {
+      static auto _Exp2_zero = 
+        ( (std::bitset<bits>(1) << (exponent_bits - 1)) - 1 )
+          << exponent_offset_bits;
+      return _Exp2_zero;
+    }
 
-		static std::bitset<bits> zero_mask() {
-			return std::bitset<bits>(0);
-		}
+    static std::bitset<bits> zero_mask() {
+      return std::bitset<bits>(0);
+    }
 
-		static std::bitset<bits> infinity_mask() {
-			// infinity = full 1 in exponent_bitset
-			return exponent_mask();
-		}
+    static std::bitset<bits> infinity_mask() {
+      // infinity = full 1 in exponent_bitset
+      return exponent_mask();
+    }
 
-		static floatX zero() {
-			return floatX(zero_mask());
-		}
+  public:
+    std::bitset<bits> _Mybitset;
 
-		static floatX epsilon() noexcept {
-			// epsilon = exp2(0 - mantissa_bits) 
-			static floatX _Epsilon = floatX(
-				exponent_bias()
-				- (std::bitset<bits>(mantissa_bits) << exponent_offset_bits)
-				);
-			return _Epsilon;
-		}
+    const std::bitset<bits>& bitset() const {
+      return _Mybitset;
+    }
 
-		static floatX infinity() {
-			return floatX(exponent_mask());
-		}
+    std::bitset<bits>& bitset() {
+      return _Mybitset;
+    }
 
-		static floatX quiet_NaN() {
-			static floatX _Quiet_nan = floatX(
-				exponent_mask()
-				| (hidden_significant() >> 1)
-				);
-			return _Quiet_nan;
-		}
+    explicit floatX(std::bitset<bits> __bitset) : _Mybitset(__bitset) {}
+
+    static floatX zero() {
+      return floatX(zero_mask());
+    }
+
+    static floatX epsilon() noexcept {
+      // epsilon = exp2(0 - mantissa_bits) 
+      static floatX _Epsilon = floatX(
+        exponent_bias()
+        - (std::bitset<bits>(mantissa_bits) << exponent_offset_bits)
+      );
+      return _Epsilon;
+    }
+
+    static floatX infinity() {
+      return floatX(infinity_mask());
+    }
+
+    static floatX quiet_NaN() {
+      static floatX _Quiet_nan = floatX(
+        exponent_mask() | (hidden_significant() >> 1)/* | 0 */
+      );
+      return _Quiet_nan;
+    }
 	
-		static floatX signaling_NaN() {
-			static floatX _Signaling_nan = floatX(
-				exponent_mask()
-				| (hidden_significant() >> 1)
-				| std::bitset<bits>(1)
-				);
-			return _Signaling_nan;
-		}
+    static floatX signaling_NaN() {
+      static floatX _Signaling_nan = floatX(
+        exponent_mask() | (hidden_significant() >> 1) | std::bitset<bits>(1)
+      );
+      return _Signaling_nan;
+    }
 
-	public:
+    static bool iszero(const floatX& x) {
+      return (x.bitset() & (exponent_mask() | mantissa_mask())) == zero_mask();
+    }
 
-		std::bitset<bits> _Mybitset;
+    static bool isinf(const floatX& x) {
+      return (x.bitset() & exponent_mask()) == exponent_mask();
+    }
 
-		const std::bitset<bits>& bitset() const {
-			return _Mybitset;
-		}
+  public:
+    floatX() = default;
+    
+    /*{ "_Right_bitset to _This_bitset":{
+      if(_This_bits < _Right_bits) {
+        small first, next storage
+      } else {
+        storage first, next large
+	  }
+    }}*/
+    template<size_t m2, size_t e2> explicit
+    floatX(const floatX<m2, e2>& other) {
+      if (other == 0) {
+        // exponent is error, so ...
+        _Mybitset = zero_mask();
+        return;
+      }
 
-		std::bitset<bits>& bitset() {
-			return _Mybitset;
-		}
+      using this_float = floatX<m2, e2>;
+      using other_float = floatX<m2, e2>;
+      constexpr 
+      size_t other_bits = other_float::bits;
+      auto other_bitset = other.bitset();
 
-		floatX() = default;
-
-		explicit 
-		floatX(std::bitset<bits> __bitset) : _Mybitset(__bitset) {}
-
-		template<size_t m2, size_t e2> explicit
-		floatX(const floatX<m2, e2>& other) {
-			using other_float = floatX<m2, e2>;
-			constexpr 
-			size_t other_bits = other_float::bits;
-			auto other_bitset = other.bitset();
-
-			// _My_mantissa = shifted(other_mantissa)
-			std::bitset<other_bits> other_mantissa = other_bitset & other_float::mantissa_mask();
-			std::bitset<bits> _My_mantissa;
-			if constexpr ( mantissa_bits < other_float::mantissa_bits ) {
-				std::bitset<other_bits> shifted_mantissa = other_mantissa >> (other_float::mantissa_bits - mantissa_bits);
-				std::bitset<bits> casted_shifted_mantissa = std::bitset_cast<bits>(shifted_mantissa);
-				_My_mantissa = casted_shifted_mantissa;
-			} else if constexpr ( other_float::mantissa_bits < mantissa_bits ) {
-				std::bitset<bits> casted_mantissa = std::bitset_cast<bits>( other_mantissa );
-				std::bitset<bits> shifted_casted_mantissa = casted_mantissa << (mantissa_bits - other_float::mantissa_bits);
-				_My_mantissa = shifted_casted_mantissa;
-			} else {
-				_My_mantissa = std::bitset_cast<bits>( other_mantissa );
-			}
+      // _My_mantissa = shifted(other_mantissa)
+      std::bitset<other_bits> other_mantissa = other_bitset & other_float::mantissa_mask();
+      std::bitset<bits> _My_mantissa;
+      if constexpr ( mantissa_bits < other_float::mantissa_bits ) {
+	    std::bitset<other_bits> shifted_mantissa = other_mantissa >> (other_float::mantissa_bits - mantissa_bits);
+	    std::bitset<bits> casted_shifted_mantissa = std::bitset_cast<bits>(shifted_mantissa);
+	    _My_mantissa = casted_shifted_mantissa;
+      } else if constexpr ( other_float::mantissa_bits < mantissa_bits ) {
+	    std::bitset<bits> casted_mantissa = std::bitset_cast<bits>( other_mantissa );
+	    std::bitset<bits> shifted_casted_mantissa = casted_mantissa << (mantissa_bits - other_float::mantissa_bits);
+	    _My_mantissa = shifted_casted_mantissa;
+      } else {
+	    _My_mantissa = std::bitset_cast<bits>( other_mantissa );
+      }
 			
-			// decompose other_exponent
-			std::bitset<other_bits> other_abs_exponent = (other_bitset & other_float::exponent_mask());
-			bool other_exponent_sign;
-			if ( other_abs_exponent < other_float::exponent_bias() ) {
-				other_exponent_sign = true;//negative
-				other_abs_exponent = other_float::exponent_bias() - other_abs_exponent;
-			} else {
-				other_exponent_sign = false;//negative
-				other_abs_exponent -= other_float::exponent_bias();
-			}
+      // decompose other_exponent
+      std::bitset<other_bits> other_abs_exponent = (other_bitset & other_float::exponent_mask());
+      bool other_exponent_sign;
+      if ( other_abs_exponent < other_float::exponent_bias() ) {
+	    other_exponent_sign = 1;//negative
+	    other_abs_exponent = other_float::exponent_bias() - other_abs_exponent;
+      } else {
+	    other_exponent_sign = 0;//positive
+	    other_abs_exponent -= other_float::exponent_bias();
+      }
 			
-			// other_exponent is infinity ?, abandon an exponent-upper [-125,128] to [-125,127]
-			std::bitset<bits> _My_exponent;
-			std::bitset<other_bits> _My_abs_infinite;
-			if constexpr ( exponent_offset_bits < other_float::exponent_offset_bits ) {
-				std::bitset<other_bits> casted_infinite = std::bitset_cast<other_bits>( infinity_mask() - exponent_bias() - 1 );
-				std::bitset<other_bits> shifted_casted_infinite = casted_infinite << (other_float::exponent_offset_bits - exponent_offset_bits);
-				_My_abs_infinite = shifted_casted_infinite;
-			} else if constexpr ( other_float::exponent_offset_bits < exponent_offset_bits ) {
-				std::bitset<bits> shifted_infinite = (infinity_mask() - exponent_bias() - 1) >> (exponent_offset_bits - other_float::exponent_offset_bits);
-				std::bitset<other_bits> casted_shifted_infinite = std::bitset_cast<other_bits>(shifted_infinite);
-				_My_abs_infinite = casted_shifted_infinite;
-			} else {
-				_My_abs_infinite = reinterpret_cast<const std::bitset<other_bits>&>( infinity_mask() - exponent_bias() - 1 );
-			}
+      // other_exponent is infinity ?, abandon an exponent-upper [-125,128] to [-125,127]
+      std::bitset<bits> _My_exponent;
+      std::bitset<other_bits> _My_abs_infinite;
+      if constexpr ( this_float::exponent_offset_bits < other_float::exponent_offset_bits ) {
+	    std::bitset<other_bits> casted_infinite = std::bitset_cast<other_bits>( this_float::infinity_mask() - this_float::exponent_bias() - 1 );
+	    std::bitset<other_bits> shifted_casted_infinite = casted_infinite << ( other_float::exponent_offset_bits - this_float::exponent_offset_bits );
+	    _My_abs_infinite = shifted_casted_infinite;
+      } else if constexpr ( this_float::exponent_offset_bits > other_float::exponent_offset_bits ) {
+        std::bitset<bits> shifted_infinite = (infinity_mask() - exponent_bias() - 1) >> (exponent_offset_bits - other_float::exponent_offset_bits);
+        std::bitset<other_bits> casted_shifted_infinite = std::bitset_cast<other_bits>(shifted_infinite);
+        _My_abs_infinite = casted_shifted_infinite;
+      } else /*if ( other_float::exponent_offset_bits == this_float::exponent_offset_bits )*/ {
+        _My_abs_infinite = std::bitset_cast<other_bits>( infinity_mask() - exponent_bias() - 1 );
+      }
 
-			if (_My_abs_infinite < other_abs_exponent) {
-				_My_exponent = infinity_mask();
-			} else {
+      if (_My_abs_infinite < other_abs_exponent) {
+	    _My_exponent = infinity_mask();
+      } else {
 
-				// _My_exponent = shifted(other_exponent)
-				if constexpr ( exponent_offset_bits < other_float::exponent_offset_bits ) {
-					std::bitset<other_bits> shifted_exponent = other_abs_exponent >> (other_float::exponent_offset_bits - exponent_offset_bits);
-					std::bitset<bits> casted_shifted_exponent = std::bitset_cast<bits>(shifted_exponent);
-					_My_exponent = casted_shifted_exponent;
-				} else if constexpr ( other_float::exponent_offset_bits < exponent_offset_bits ) {
-					std::bitset<bits> casted_exponent = std::bitset_cast<bits>( other_abs_exponent );
-					std::bitset<bits> shifted_casted_exponent = casted_exponent << (exponent_offset_bits - other_float::exponent_offset_bits);
-					_My_exponent = shifted_casted_exponent;
-				} else {
-					_My_exponent = std::bitset_cast<bits>( other_abs_exponent );
-				}
+	    // _My_exponent = shifted(other_exponent)
+	    if constexpr ( exponent_offset_bits < other_float::exponent_offset_bits ) {
+		  std::bitset<other_bits> shifted_exponent = other_abs_exponent >> (other_float::exponent_offset_bits - exponent_offset_bits);
+		  std::bitset<bits> casted_shifted_exponent = std::bitset_cast<bits>(shifted_exponent);
+		  _My_exponent = casted_shifted_exponent;
+	    } else if constexpr ( other_float::exponent_offset_bits < exponent_offset_bits ) {
+		  std::bitset<bits> casted_exponent = std::bitset_cast<bits>( other_abs_exponent );
+		  std::bitset<bits> shifted_casted_exponent = casted_exponent << (exponent_offset_bits - other_float::exponent_offset_bits);
+		  _My_exponent = shifted_casted_exponent;
+	    } else {
+		  _My_exponent = std::bitset_cast<bits>( other_abs_exponent );
+        }
 
-				if (other_exponent_sign) {
-					_My_exponent = exponent_bias() - _My_exponent;
-				} else {
-					_My_exponent += exponent_bias();
-				}
-
-			}
+        if (other_exponent_sign) {
+          _My_exponent = exponent_bias() - _My_exponent;
+        } else {
+          _My_exponent += exponent_bias();
+        }
+      }
 			
-			bool is_negative = (other_bitset & other_float::sign_mask()) 
-				== (decltype(other_bitset)(1) << other_float::sign_offset_bits);
-			auto _My_sign = std::bitset<bits>(is_negative) << sign_offset_bits;
+      bool is_negative = (other_bitset & other_float::sign_mask()) 
+        == (decltype(other_bitset)(1) << other_float::sign_offset_bits);
+      auto _My_sign = std::bitset<bits>(is_negative) << sign_offset_bits;
 
-			_Mybitset = _My_sign | _My_exponent | _My_mantissa;
-			if (other == 0) {
-				_Mybitset = zero_mask();
-			}
-		}
+      _Mybitset = _My_sign | _My_exponent | _My_mantissa;
+    }
 		
-		floatX(float ohter) : floatX(reinterpret_cast<const floatX<23,8>&>(ohter)) {}
+    floatX(float ohter) : floatX(reinterpret_cast<const floatX<23,8>&>(ohter)) {}
 		
-		floatX(double ohter) : floatX(reinterpret_cast<const floatX<52,11>&>(ohter)) {}
+    floatX(double ohter) : floatX(reinterpret_cast<const floatX<52,11>&>(ohter)) {}
 
-		floatX(long double other) : floatX(static_cast<double>(other)) {}
+    floatX(long double other) : floatX(static_cast<double>(other)) {}
 
-		floatX(unsigned int other) {
-			if (other == 0U) {
-				_Mybitset = zero_mask();
-				return;
-			}
+    floatX(unsigned int other) {
+      if (other == 0U) {
+        _Mybitset = zero_mask();
+        return;
+      }
 
-			// 000000000.00000000000010100100010 * pow(2,mantissa_bits)
-			auto this_exponent = exponent_bias() + (std::bitset<bits>(mantissa_bits) << exponent_offset_bits);
-			auto this_significant = std::bitset<bits>(other);
+      // 000000000.00000000000010100100010 * pow(2,mantissa_bits)
+      auto this_exponent = exponent_bias() + (std::bitset<bits>(mantissa_bits) << exponent_offset_bits);
+      auto this_significant = std::bitset<bits>(other);
 
-			//  normalize significant-bits and exponent-bits
-			auto hidden_significant_mask = ~mantissa_mask();
-			auto exponent_one = std::bitset<bits>(1) << exponent_offset_bits;
-			if ( this_significant < hidden_significant() ) {
-				while ( (this_significant & hidden_significant_mask) != hidden_significant() ) {
-					this_significant <<= 1;
-					this_exponent -= exponent_one;
-				}
-			} else {
-				while ( (this_significant & hidden_significant_mask) != hidden_significant() ) {
-					this_significant >>= 1;
-					this_exponent += exponent_one;
-				}
-			}
+      //  normalize significant-bits and exponent-bits
+      auto hidden_significant_mask = ~mantissa_mask();
+      auto exponent_one = std::bitset<bits>(1) << exponent_offset_bits;
+      if ( this_significant < hidden_significant() ) {
+        while ( (this_significant & hidden_significant_mask) != hidden_significant() ) {
+          this_significant <<= 1;
+          this_exponent -= exponent_one;
+        }
+      } else {
+        while ( (this_significant & hidden_significant_mask) != hidden_significant() ) {
+        this_significant >>= 1;
+        this_exponent += exponent_one;
+        }
+      }
 
-			_Mybitset = this_exponent | (this_significant & mantissa_mask());
-		}
+      _Mybitset = this_exponent | (this_significant & mantissa_mask());
+    }
 
-		floatX(unsigned long long other) {
-			if (other == 0ULL) {
-				_Mybitset = zero_mask();
-				return;
-			}
+    floatX(unsigned long long other) {
+      if (other == 0ULL) {
+        _Mybitset = zero_mask();
+        return;
+      }
 
-			// 1expexpexp.mantissamantissa * pow(2,mantissa_bits)
-			auto this_exponent = exponent_bias() + (std::bitset<bits>(mantissa_bits) << exponent_offset_bits);
-			auto this_significant = std::bitset<bits>(other);
+      // 1expexpexp.mantissamantissa * pow(2,mantissa_bits)
+      auto this_exponent = exponent_bias() + (std::bitset<bits>(mantissa_bits) << exponent_offset_bits);
+      auto this_significant = std::bitset<bits>(other);
 
-			//  normalize significant-bits and exponent-bits
-			auto hidden_significant_mask = ~mantissa_mask();
-			auto exponent_one = std::bitset<bits>(1) << exponent_offset_bits;
-			if ( this_significant < hidden_significant() ) {
-				while ( (this_significant & hidden_significant_mask) != hidden_significant() ) {
-					this_significant <<= 1;
-					this_exponent -= exponent_one;
-				}
-			} else {
-				while ( (this_significant & hidden_significant_mask) != hidden_significant() ) {
-					this_significant >>= 1;
-					this_exponent += exponent_one;
-				}
-			}
+      //  normalize significant-bits and exponent-bits
+      auto hidden_significant_mask = ~mantissa_mask();
+      auto exponent_one = std::bitset<bits>(1) << exponent_offset_bits;
+      if ( this_significant < hidden_significant() ) {
+        while ( (this_significant & hidden_significant_mask) != hidden_significant() ) {
+          this_significant <<= 1;
+          this_exponent -= exponent_one;
+        }
+      } else {
+        while ( (this_significant & hidden_significant_mask) != hidden_significant() ) {
+        this_significant >>= 1;
+        this_exponent += exponent_one;
+        }
+      }
+      
+      _Mybitset = this_exponent | (this_significant & mantissa_mask());
+    }
 
-			_Mybitset = this_exponent | (this_significant & mantissa_mask());
-		}
+    floatX(bool other) {
+      if( other ){
+        _Mybitset = exponent_bias()/* | std::bitset<bits>(0)*/;
+      } else {
+        _Mybitset = zero_mask();
+      }
+    }
 
-		floatX(bool other) {
-			abort();
-		}
+    floatX(int other) : floatX(other < 0 ? static_cast<unsigned int>(-other) : static_cast<unsigned int>(other)) {
+      _Mybitset |= std::bitset<bits>(other < 0) << sign_offset_bits;
+    }
 
-		floatX(int other) : floatX(other < 0 ? static_cast<unsigned int>(-other) : static_cast<unsigned int>(other)) {
-			_Mybitset |= std::bitset<bits>(other < 0) << sign_offset_bits;
-		}
-
-		floatX(long long other) : floatX(other < 0 ? static_cast<unsigned long long>(-other) : static_cast<unsigned long long>(other)) {
-			_Mybitset |= std::bitset<bits>(other < 0) << sign_offset_bits;
-		}
+    floatX(long long other) : floatX(other < 0 ? static_cast<unsigned long long>(-other) : static_cast<unsigned long long>(other)) {
+      _Mybitset |= std::bitset<bits>(other < 0) << sign_offset_bits;
+    }
 		
-		explicit operator float() const {
-			auto the_float = floatX<23,8>(*this);
-			return reinterpret_cast<const float&>(the_float);
-		}
+    explicit operator float() const {
+      auto the_float = floatX<23,8>(*this);
+      return reinterpret_cast<const float&>(the_float);
+    }
 
-		explicit operator double() const {
-			auto the_double = floatX<52,11>(*this);
-			return reinterpret_cast<const double&>(the_double);
-		}
+    explicit operator double() const {
+      auto the_double = floatX<52,11>(*this);
+      return reinterpret_cast<const double&>(the_double);
+    }
 
-		explicit operator long double() const {
-			abort();
-		}
+    explicit operator long double() const {
+      return static_cast<long double>(static_cast<double>(*this));
+    }
 
-		explicit operator bool() const {
-			return iszero(*this) ? false : true;
-		}
+    explicit operator unsigned int() const {
+      const auto zero_exponent = exponent_bias();
 
-		explicit operator int() const {
-			abort();
-		}
+      // only fraction
+      auto this_exponent = (_Mybitset & exponent_mask());
+      if ( this_exponent < zero_exponent ) {
+        return static_cast<unsigned int>(0);
+      }
 
-		explicit operator long long() const {
-			abort();
-		}
+      // compute saved_bits, @floor(float_)
+      auto exp2_mantissa_bits = std::bitset<bits>(mantissa_bits) << exponent_offset_bits;
+      auto truncated_exponent = this_exponent - exp2_mantissa_bits;
+      auto trunc_exponent = zero_exponent - truncated_exponent;
+      size_t trunc_bits = (trunc_exponent >> exponent_offset_bits).to_ulong();
+      size_t saved_bits = (mantissa_bits+1) - trunc_bits;
+      if (saved_bits > sizeof(unsigned int) * 8) {
+        throw std::overflow_error("floatX<...>::operator unsigned int() const");
+      }
 
-		explicit operator unsigned int() const {
-			const auto zero_exponent = exponent_bias();
+      // smaller-shift to correct integer-bits
+      auto this_significant = _Mybitset & mantissa_mask() | hidden_significant();
+      this_significant >>= ((mantissa_bits+1) - saved_bits);
 
-			// only fraction
-			auto this_exponent = (_Mybitset & exponent_mask());
-			if ( this_exponent < zero_exponent ) {
-				return static_cast<unsigned int>(0);
-			}
+      auto dest = std::bitset_cast<sizeof(unsigned int)*8>(this_significant);
+      return reinterpret_cast<const unsigned int&>(dest);
+    }
 
-			// compute saved_bits, @floor(float_)
-			auto exp2_mantissa_bits = std::bitset<bits>(mantissa_bits) << exponent_offset_bits;
-			auto truncated_exponent = this_exponent - exp2_mantissa_bits;
-			auto trunc_exponent = zero_exponent - truncated_exponent;
-			size_t trunc_bits = (trunc_exponent >> exponent_offset_bits).to_ulong();
-			size_t saved_bits = (mantissa_bits+1) - trunc_bits;
-			if (saved_bits > sizeof(unsigned int) * 8) {
-				throw std::overflow_error("floatX<...>::operator unsigned int() const");
-			}
+    explicit operator unsigned long long() const {
+      const auto zero_exponent = exponent_bias();
 
-			// smaller-shift to correct integer-bits
-			auto this_significant = _Mybitset & mantissa_mask() | hidden_significant();
-			this_significant >>= ((mantissa_bits+1) - saved_bits);
+      // only fraction
+      auto this_exponent = (_Mybitset & exponent_mask());
+      if ( this_exponent < zero_exponent ) {
+        return static_cast<unsigned long long>(0);
+      }
 
-			auto dest = std::bitset_cast<sizeof(unsigned int)*8>(this_significant);
-			return reinterpret_cast<const unsigned int&>(dest);
-		}
+      // compute saved_bits, @floor(float_)
+      auto exp2_mantissa_bits = std::bitset<bits>(mantissa_bits) << exponent_offset_bits;
+      auto truncated_exponent = this_exponent - exp2_mantissa_bits;
+      auto trunc_exponent = zero_exponent - truncated_exponent;
+      size_t trunc_bits = (trunc_exponent >> exponent_offset_bits).to_ulong();
+      size_t saved_bits = (mantissa_bits+1) - trunc_bits;
+      if (saved_bits > sizeof(unsigned long long) * 8) {
+        throw std::overflow_error("floatX<...>::operator unsigned int() const");
+      }
 
-		explicit operator unsigned long long() const {
-			const auto zero_exponent = exponent_bias();
+      // smaller-shift to correct integer-bits
+      auto this_significant = _Mybitset & mantissa_mask() | hidden_significant();
+      this_significant >>= ((mantissa_bits+1) - saved_bits);
+       
+      auto dest = std::bitset_cast<sizeof(unsigned long long)*8>(this_significant);
+      return reinterpret_cast<const unsigned long long&>(dest);
+    }
+    
+    explicit operator bool() const {
+      return iszero(*this) ? false : true;
+    }
+    
+    explicit operator int() const {
+      return (_Mybitset & sign_mask()).none() 
+        ? static_cast<int>(static_cast<unsigned int>(*this))
+        : -static_cast<int>(static_cast<unsigned int>(*this));
+    }
 
-			// only fraction
-			auto this_exponent = (_Mybitset & exponent_mask());
-			if ( this_exponent < zero_exponent ) {
-				return static_cast<unsigned long long>(0);
-			}
+    explicit operator long long() const {
+      return (_Mybitset & sign_mask()).none() 
+        ? static_cast<long long>(static_cast<unsigned long long>(*this)) 
+        : -static_cast<long long>(static_cast<unsigned long long>(*this));
+    }
 
-			// compute saved_bits, @floor(float_)
-			auto exp2_mantissa_bits = std::bitset<bits>(mantissa_bits) << exponent_offset_bits;
-			auto truncated_exponent = this_exponent - exp2_mantissa_bits;
-			auto trunc_exponent = zero_exponent - truncated_exponent;
-			size_t trunc_bits = (trunc_exponent >> exponent_offset_bits).to_ulong();
-			size_t saved_bits = (mantissa_bits+1) - trunc_bits;
-			if (saved_bits > sizeof(unsigned int) * 8) {
-				throw std::overflow_error("floatX<...>::operator unsigned int() const");
-			}
+    template<typename Ty> 
+    const Ty& as() const {
+      return *reinterpret_cast<const Ty*>(&_Mybitset);
+    }
 
-			// smaller-shift to correct integer-bits
-			auto this_significant = _Mybitset & mantissa_mask() | hidden_significant();
-			this_significant >>= ((mantissa_bits+1) - saved_bits);
+    template<typename Ty> 
+    Ty& as() { 
+      return *reinterpret_cast<Ty*>(&_Mybitset); 
+    }
 
-			auto dest = std::bitset_cast<sizeof(unsigned long long)*8>(this_significant);
-			return reinterpret_cast<const unsigned long long&>(dest);
-		}
+    bool operator==(const floatX& right) const {
+      return _Mybitset == right._Mybitset 
+        || (iszero(*this) && iszero(right));
+    }
 
-		template<typename Ty> 
-		const Ty& as() const {
-			return *reinterpret_cast<const Ty*>(&_Mybitset);
-		}
+    bool operator!=(const floatX& right) const {
+      return !(*this == right);
+    }
 
-		template<typename Ty> 
-		Ty& as() { 
-			return *reinterpret_cast<Ty*>(&_Mybitset); 
-		}
+    bool operator<(const floatX& right) const {
+      if (*this == right) {
+        return false;
+      }
 
-		static bool iszero(const floatX& x) {
-			return (x.bitset() & (exponent_mask() | mantissa_mask())) == zero_mask();
-		}
+      if ((_Mybitset & sign_mask()) > (right.bitset() & sign_mask())) {
+        return true;
+      }
 
-		static bool isinf(const floatX& x) {
-			return (x.bitset() & exponent_mask()) == exponent_mask();
-		}
+      if ((_Mybitset & (~sign_mask())) < (right.bitset() & (~sign_mask()))) {
+        return true;
+      }
 
-		bool operator==(const floatX& right) const {
-			return _Mybitset == right._Mybitset 
-				|| (iszero(*this) && iszero(right));
-		}
+      return false;
+    }
 
-		bool operator!=(const floatX& right) const {
-			return !(*this == right);
-		}
-
-		bool operator<(const floatX& right) const {
-			if (*this == right) {
-				return false;
-			}
-
-			if ((_Mybitset & sign_mask()) > (right.bitset() & sign_mask())) {
-				return true;
-			}
-
-			if ((_Mybitset & (~sign_mask())) < (right.bitset() & (~sign_mask()))) {
-				return true;
-			}
-
-			return false;
-		}
-
-		bool operator>(const floatX& right) const {
-			return right < *this;
-		}
+    bool operator>(const floatX& right) const {
+      return right < *this;
+    }
 		
-		bool operator<=(const floatX& right) const {
-			return !(*this > right);
-		}
+    bool operator<=(const floatX& right) const {
+      return !(*this > right);
+    }
 
-		bool operator>=(const floatX& right) const {
-			return !(*this < right);
-		}
+    bool operator>=(const floatX& right) const {
+      return !(*this < right);
+    }
 
-		floatX operator-() const {
-			return floatX{ ((_Mybitset & sign_mask()) ^ sign_mask()) | (_Mybitset & (~sign_mask())) };
-		}
+    floatX operator-() const {
+      return floatX{ ((_Mybitset & sign_mask()) ^ sign_mask()) | (_Mybitset & (~sign_mask())) };
+    }
 
-		floatX operator+(const floatX& right) const {
-		// { slower than <addss> 40 times }
-			if (iszero(*this)) {
-				return right;
-			} 
-			if (iszero(right)) {
-				return *this;
-			}
+    floatX operator+(const floatX& right) const {
+      // { slower than <addss> 40 times }
+      if (iszero(*this)) {
+        return right;
+      } 
+      if (iszero(right)) {
+        return *this;
+      }
 
-			// get sign-bits, exponent-bits, significant-bits
-			auto this_sign = _Mybitset & sign_mask();
-			auto right_sign = right.bitset() & sign_mask();
-			auto this_exponent = (_Mybitset & exponent_mask());
-			auto right_exponent = (right.bitset() & exponent_mask());
-			auto this_significant = (_Mybitset & mantissa_mask()) | hidden_significant();
-			auto right_significant = (right.bitset() & mantissa_mask()) | hidden_significant();
-			const auto exp2_one = std::bitset<bits>(1) << exponent_offset_bits;
+      // get sign-bits, exponent-bits, significant-bits
+      auto this_sign = _Mybitset & sign_mask();
+      auto right_sign = right.bitset() & sign_mask();
+      auto this_exponent = (_Mybitset & exponent_mask());
+      auto right_exponent = (right.bitset() & exponent_mask());
+      auto this_significant = (_Mybitset & mantissa_mask()) | hidden_significant();
+      auto right_significant = (right.bitset() & mantissa_mask()) | hidden_significant();
+      const auto exp2_one = std::bitset<bits>(1) << exponent_offset_bits;
 
-			// sync exponent-bits, to greater
-			if ( this_exponent < right_exponent ) {
-				do {
-					this_significant >>= 1;
-					this_exponent += exp2_one;
-				} while (this_exponent != right_exponent);
-			} else if (this_exponent != right_exponent) {
-				do {
-					right_significant >>= 1;
-					right_exponent += exp2_one;
-				} while (right_exponent != this_exponent);
-			}
+      // sync exponent-bits, to greater
+      if ( this_exponent < right_exponent ) {
+        do {
+          this_significant >>= 1;
+          this_exponent += exp2_one;
+        } while (this_exponent != right_exponent);
+      } else if (this_exponent != right_exponent) {
+        do {
+          right_significant >>= 1;
+          right_exponent += exp2_one;
+        } while (right_exponent != this_exponent);
+      }
 
-			// add significant-bits, update sign-bits
-			if (this_sign == right_sign) {
-				this_significant += right_significant;
-			} else if (this_significant > right_significant) {
-				this_significant -= right_significant;
-			} else if (this_significant != right_significant) {
-				this_significant = right_significant - this_significant;
-				this_sign = right_sign;
-			} else {// this + right = 0
-				return zero();
-			}
+      // add significant-bits, update sign-bits
+      if (this_sign == right_sign) {
+        this_significant += right_significant;
+      } else if (this_significant > right_significant) {
+        this_significant -= right_significant;
+      } else if (this_significant != right_significant) {
+        this_significant = right_significant - this_significant;
+        this_sign = right_sign;
+      } else {// this + right = 0
+        return zero();
+      }
 
-			//  normalize significant-bits and exponent-bits
-			if ( this_significant < hidden_significant() ) {
-				while ( (this_significant & hidden_significant()).none() ) {
-					this_significant <<= 1;
-					this_exponent -= exp2_one;
-				}
-			} else {
-				// hidden-significant && (exponent|sign-bits) == 0
-				const auto highbit_mask = ~mantissa_mask();
-				while ( (this_significant & highbit_mask) != hidden_significant() ) {
-					this_significant >>= 1;
-					this_exponent += exp2_one;
-				}
-			}
+      //  normalize significant-bits and exponent-bits
+      if ( this_significant < hidden_significant() ) {
+        while ( (this_significant & hidden_significant()).none() ) {
+          this_significant <<= 1;
+          this_exponent -= exp2_one;
+        }
+      } else {
+        // hidden-significant && (exponent|sign-bits) == 0
+        const auto highbit_mask = ~mantissa_mask();
+        while ( (this_significant & highbit_mask) != hidden_significant() ) {
+          this_significant >>= 1;
+          this_exponent += exp2_one;
+        }
+      }
 
-			return floatX{ this_sign | this_exponent | (this_significant & mantissa_mask()) };
-		}
+      return floatX{ this_sign | this_exponent | (this_significant & mantissa_mask()) };
+    }
 
-		floatX operator-(const floatX& right) const {
-			return *this + (-right);
-		}
+    floatX operator-(const floatX& right) const {
+      return *this + (-right);
+    }
 
-		floatX operator*(const floatX& right) const {
-			if (iszero(*this) || iszero(right)) {
-				return zero();
-			}
+    floatX operator*(const floatX& right) const {
+      if (iszero(*this) || iszero(right)) {
+        return zero();
+      }
 
-			// this_sign = this_sign * right_sign
-			auto this_sign = _Mybitset & sign_mask();
-			auto right_sign = right.bitset() & sign_mask();
-			this_sign ^= right_sign;
+      // this_sign = this_sign * right_sign
+      auto this_sign = _Mybitset & sign_mask();
+      auto right_sign = right.bitset() & sign_mask();
+      this_sign ^= right_sign;
 			
-			// this_exponent = this_exponent + right_exponent
-			auto this_exponent = (_Mybitset & exponent_mask());
-			auto right_exponent = (right.bitset() & exponent_mask());
-			this_exponent += right_exponent;// sign bit, so no overflow
-			this_exponent -= exponent_bias();
+      // this_exponent = this_exponent + right_exponent
+      auto this_exponent = (_Mybitset & exponent_mask());
+      auto right_exponent = (right.bitset() & exponent_mask());
+      this_exponent += (right_exponent - exponent_bias());// !!!!
 
-			// this_significant * exp2(mantissa_bits) = (this_significant * right_significant)
-			auto this_significant = std::bitset_cast<bits * 2>( (_Mybitset & mantissa_mask()) | hidden_significant() );
-			auto right_significant = std::bitset_cast<bits * 2>( (right.bitset() & mantissa_mask()) | hidden_significant() );
-			this_significant *= right_significant;
+      // this_significant * exp2(mantissa_bits) = (this_significant * right_significant)
+      auto this_significant = std::bitset_cast<bits * 2>( (_Mybitset & mantissa_mask()) | hidden_significant() );
+      auto right_significant = std::bitset_cast<bits * 2>( (right.bitset() & mantissa_mask()) | hidden_significant() );
+      this_significant *= right_significant;
 
-			// normalize...
-			const auto exp2_one = std::bitset<bits>(1) << exponent_offset_bits;
-			auto hidden_significant_ex = std::bitset<bits * 2>( 1 ) << (mantissa_bits * 2);
-			if ( this_significant < hidden_significant_ex ) {
-				while ( (this_significant & hidden_significant_ex).none() ) {
-					this_significant <<= 1;
-					this_exponent -= exp2_one;
-				}
-			} else {
-				// hidden-significant && (exponent|sign-bits) == 0
-				const auto highbit_mask = ~(hidden_significant_ex - 1);
-				while ( (this_significant & highbit_mask) != hidden_significant_ex ) {
-					this_significant >>= 1;
-					this_exponent += exp2_one;
-				}
-			}
-			this_significant >>= mantissa_bits;
+      // normalize...
+      const auto exp2_one = std::bitset<bits>(1) << exponent_offset_bits;
+      auto hidden_significant_ex = std::bitset<bits * 2>( 1 ) << (mantissa_bits * 2);
+      if ( this_significant < hidden_significant_ex ) {
+        while ( (this_significant & hidden_significant_ex).none() ) {
+          this_significant <<= 1;
+          this_exponent -= exp2_one;
+        }
+      } else {
+        // hidden-significant && (exponent|sign-bits) == 0
+        const auto highbit_mask = ~(hidden_significant_ex - 1);
+        while ( (this_significant & highbit_mask) != hidden_significant_ex ) {
+          this_significant >>= 1;
+          this_exponent += exp2_one;
+        }
+      }
+      this_significant >>= mantissa_bits;
 			
-			return floatX{ this_sign | this_exponent | (std::bitset_cast<bits>(this_significant) & mantissa_mask()) };
-		}
+      return floatX{ this_sign | this_exponent | (std::bitset_cast<bits>(this_significant) & mantissa_mask()) };
+    }
 		
-		floatX operator/(const floatX& right) const {
-			auto this_sign = _Mybitset & sign_mask();
-			auto right_sign = right.bitset() & sign_mask();
-			this_sign ^= right_sign;
-			if (iszero(*this)) {
-				return zero();
-			}
-			if ( iszero(right) ) {
-				return floatX{ this_sign | infinity_mask() };
-			}
+    floatX operator/(const floatX& right) const {
+      auto this_sign = _Mybitset & sign_mask();
+      auto right_sign = right.bitset() & sign_mask();
+      this_sign ^= right_sign;
+      if (iszero(*this)) {
+        return zero();
+      }
+      if ( iszero(right) ) {
+        return floatX{ this_sign | infinity_mask() };
+      }
 
-			auto this_exponent = (_Mybitset & exponent_mask());
-			auto right_exponent = (right.bitset() & exponent_mask());
-			this_exponent += exponent_bias();// avoid underflow
-			this_exponent -= right_exponent;
+      auto this_exponent = (_Mybitset & exponent_mask());
+      auto right_exponent = (right.bitset() & exponent_mask());
+      this_exponent -= (right_exponent - exponent_bias());// !!!
 
-			auto this_significant = std::bitset<bits>(0);
-			auto dividend = (_Mybitset & mantissa_mask()) | hidden_significant();
-			auto divisor = (right.bitset() & mantissa_mask()) | hidden_significant();
-			size_t offset = mantissa_bits;// contains hidden-significant
-			while (true) {
-				if (dividend >= divisor) {
-					this_significant |= (std::bitset<bits>(1) << offset);
-					dividend -= divisor;
-				}
+      auto this_significant = std::bitset<bits>(0);
+      auto dividend = (_Mybitset & mantissa_mask()) | hidden_significant();
+      auto divisor = (right.bitset() & mantissa_mask()) | hidden_significant();
+      size_t offset = mantissa_bits;// contains hidden-significant
+      while (true) {
+        if (dividend >= divisor) {
+          this_significant |= (std::bitset<bits>(1) << offset);
+          dividend -= divisor;
+        }
 
-				if (--offset == size_t(-1)) {
-					break;
-				}
+        if (--offset == size_t(-1)) {
+          break;
+        }
 
-				dividend <<= 1;
-			}
+        dividend <<= 1;
+      }
 
-			//  normalize significant-bits and exponent-bits
-			const auto exp2_one = std::bitset<bits>(1) << exponent_offset_bits;
-			if ( this_significant < hidden_significant() ) {
-				while ( (this_significant & hidden_significant()).none() ) {
-					this_significant <<= 1;
-					this_exponent -= exp2_one;
-				}
-			} else {
-				// hidden-significant && (exponent|sign-bits) == 0
-				const auto highbit_mask = ~mantissa_mask();
-				while ( (this_significant & highbit_mask) != hidden_significant() ) {
-					this_significant >>= 1;
-					this_exponent += exp2_one;
-				}
-			}
+      //  normalize significant-bits and exponent-bits
+      const auto exp2_one = std::bitset<bits>(1) << exponent_offset_bits;
+      if ( this_significant < hidden_significant() ) {
+        while ( (this_significant & hidden_significant()).none() ) {
+          this_significant <<= 1;
+          this_exponent -= exp2_one;
+        }
+      } else {
+        const auto highbit_mask = ~mantissa_mask();
+        while ( (this_significant & highbit_mask) != hidden_significant() ) {
+          this_significant >>= 1;
+          this_exponent += exp2_one;
+        }
+      }
 
-			return floatX{ this_sign | this_exponent | (this_significant & mantissa_mask()) };
-		}
+      return floatX{ this_sign | this_exponent | (this_significant & mantissa_mask()) };
+    }
 
-		floatX operator%(const floatX& right) const {
-			abort();
-		}
+    floatX operator%(const floatX& right) const {
+      abort();
+    }
 		
-		floatX& operator+=(const floatX& right) {
-			*this = *this + right;
-			return *this;
-		}
+    floatX& operator+=(const floatX& right) {
+      *this = *this + right;
+      return *this;
+    }
 
-		floatX& operator-=(const floatX& right) {
-			*this = *this - right;
-			return *this;
-		}
+    floatX& operator-=(const floatX& right) {
+      *this = *this - right;
+      return *this;
+    }
 
-		floatX& operator*=(const floatX& right) {
-			*this = *this * right;
-			return *this;
-		}
+    floatX& operator*=(const floatX& right) {
+      *this = *this * right;
+      return *this;
+    }
 
-		floatX& operator/=(const floatX& right) {
-			*this = *this / right;
-			return *this;
-		}
+    floatX& operator/=(const floatX& right) {
+      *this = *this / right;
+      return *this;
+    }
 
-		floatX& operator%=(const floatX& right) {
-			abort();
-		}
+    floatX& operator%=(const floatX& right) {
+      abort();
+    }
 
 		// numeric functions
 
