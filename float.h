@@ -1,6 +1,7 @@
 #pragma once
 /*{ "clmagic/calculation/fundamental/float":{
   "Author": "LongJiangnan",
+  "Mail": "Jiang1998Nan@outlook.com",
   "Date": "2019-2021",
   "License": "Please identify Author",
   "Reference": [
