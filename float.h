@@ -16,8 +16,7 @@
 #include <stdexcept>
 #include <bitset>
 namespace std 
-{
-
+  {
 // { slower than <add> for 5 times }
 template<size_t _Bits>
 std::bitset<_Bits>& operator+=(std::bitset<_Bits>& _Left, std::bitset<_Bits> _Right) {
@@ -228,8 +227,7 @@ std::bitset<_OutBits> bitset_cast(const std::bitset<_InBits>& _Source) {
     return _Destination;
   }
 }
-
-}// namespace std::bitset extension
+  }// namespace std::bitset extension
 
 
 
@@ -933,6 +931,14 @@ public:
 		return _Epsilon;
 	}
 
+  static std::bitset<bits> possign_bitset() {
+    return zero_bitset();
+  }
+
+  static std::bitset<bits> negsign_bitset() {
+    return sign_mask();
+  }
+
 public:
   std::bitset<bits> _Mybitset;
 
@@ -1403,13 +1409,56 @@ public:
   floatX operator*(const floatX& right) const {
     return floatX(*this) *= right;
   }
-		
+
   floatX operator/(const floatX& right) const {
     return floatX(*this) /= right;
   }
 
   floatX operator%(const floatX& right) const {
     abort();
+  }
+
+  floatX significand() const {
+    floatX the_significand;
+    floating_significand(_Mybitset, the_significand.bitset(),
+      zero_bitset(),
+      inf_bitset(),
+      signaling_NaN_bitset(),
+      significand_mask(),
+      exponent_bias_bitset(),
+      possign_bitset()
+      );
+    return the_significand;
+  }
+
+  floatX exponent() const {
+    floatX the_exponent;
+    floatX exponent_part;
+    floatX sign_part;
+    floating_exponent(_Mybitset, the_exponent.bitset(), exponent_part.bitset(), sign_part.bitset(),
+      zero_bitset(),
+      inf_bitset(),
+      signaling_NaN_bitset(),
+      significand_mask(),
+      exponent_mask(),
+      exponent_bias_bitset(),
+      bits - 1,
+      significand_bits,
+      exponent_offset,
+      possign_bitset(),
+      negsign_bitset()
+    );
+    return the_exponent;
+  }
+
+  floatX sign() const {
+    floatX the_sign;
+    floating_sign(_Mybitset, the_sign.bitset(),
+      zero_bitset(),
+      exponent_bias_bitset(),
+      sign_mask()
+    );
+    return the_sign;
   }
 
   static floatX abs(const floatX& left) {
@@ -1975,11 +2024,11 @@ floatX<m,e,opt> round(const floatX<m,e,opt>& x) {
 /** IEEE754 single-precision
 */
 using float32_t = floatX<23,8,true>;
-	
+
 /** IEEE754 double-precision
 */
 using float64_t = floatX<52,11,true>;
-	
+
 /** (1 + 0.Significand) * 2^Exponent * (-1)^Sign,
  * @see GCC/quadmath/ALL  
 */
@@ -1988,6 +2037,33 @@ using float128_t = floatX<112,15>;
 using float256_t = floatX<235,20>;
 
 using float512_t = floatX<485,26>;
+
+using float1024_t = floatX<992,31>;
+
+inline bool isinf(float x) { return _CSTD isinf(x); }
+inline bool isinf(double x) { return _CSTD isinf(x); }
+inline bool isinf(float32_t x) { return _CSTD isinf(x); }
+inline bool isinf(float64_t x) { return _CSTD isinf(x); }
+inline bool isnan(float x) { return _CSTD isnan(x); }
+inline bool isnan(double x) { return _CSTD isnan(x); }
+inline bool isnan(float32_t x) { return _CSTD isnan(x); }
+inline bool isnan(float64_t x) { return _CSTD isnan(x); }
+using _CSTD abs;
+inline float32_t abs(float32_t x) { return _CSTD fabsf(x); }
+inline float64_t abs(float64_t x) { return _CSTD fabs(x); }
+using _CSTD floor;
+inline float32_t floor(float32_t x) { return _CSTD floorf(x); }
+inline float64_t floor(float64_t x) { return _CSTD floor(x); }
+inline float fract(float x) { return x - _CSTD floorf(x); }
+inline double fract(double x) { return x - _CSTD floor(x); }
+inline float32_t fract(float32_t x) { return x - _CSTD floorf(x); }
+inline float64_t fract(float64_t x) { return x - _CSTD floor(x); }
+using _CSTD ceil;
+inline float32_t ceil(float32_t x) { return _CSTD ceilf(x); }
+inline float64_t ceil(float64_t x) { return _CSTD ceil(x); }
+using _CSTD round;
+inline float32_t round(float32_t x) { return _CSTD roundf(x); }
+inline float64_t round(float64_t x) { return _CSTD round(x); }
 
 }// namespace calculation
 
@@ -2388,10 +2464,10 @@ template<size_t m, size_t e, bool _Isbase>
 std::string to_string(floatX<m,e,_Isbase> _Source) {
   using floatX_t = floatX<m, e, _Isbase>;
 
-	if (floatX_t::isnan(_Source)) {
+	if (isnan(_Source)) {
 		return "nan";
 	}
-	if (floatX_t::isinf(_Source)) {
+	if (isinf(_Source)) {
 		return (_Source < floatX_t(0) ? "-inf" : "inf");
 	}
 	if (_Source == 0) {
@@ -2484,8 +2560,10 @@ public:
 	}
 
   _NODISCARD static calculation::floatX<m,e,_IsOpt> signaling_NaN() noexcept {
-		return calculation::floatX<m,e,_IsOpt>( calculation::floatX<m,e,_IsOpt>::signaling_NaN() );
+		return calculation::floatX<m,e,_IsOpt>( calculation::floatX<m,e,_IsOpt>::signaling_NaN_bitset() );
 	}
+
+  static constexpr size_t digits = calculation::floatX<m,e,_IsOpt>::significand_bits + 1;
 };
   }
 
