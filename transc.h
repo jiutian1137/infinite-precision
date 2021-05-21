@@ -35,6 +35,7 @@
 
 
 #include "float.h"
+#include "rational.h"
 //#include "complex.h"
 //#include "quaternion.h"
 #include <exception>
@@ -1013,83 +1014,178 @@ Number calculate_pi() {
 	return series + seriesR;
 }
 
+template<typename Number>
+Number cos(const Number& x, const Number pi);
+
 /**
  * sine function:
  *   use maclaurin_series
  * 
  * @param x
- *   (-inf, inf)
+ *   [-pi,pi], inaccurate in (-inf, inf) because substraction in fmod(x,..), 
+ *   fmod(more_precision_number_type(x),calculate_pi<more_precision_number_type>()).
  * 
  * @return 
  *   [0, 1]
  * 
  * @series expansion
- *                           dNsin(0)
- *   sin(x) = Sum[N=0,inf]( ---------- * pow(x,N) )    :integration by parts( Maclaurin series )
- *                           fact(N)
+ *                           d<k>sin(0)     k
+ *   sin(x) = sum<k=0,inf>( ------------ * x^ )     :integration by parts( maclaurin_series )
+ *                               k!
  * 
  *                          -1               1                     -1
  *          = 0 + x + -0 + ----*x*x*x + 0 + ----*x*x*x*x*x + -0 + -----*x*x*x*x*x*x*x + ...
  *                           3               24                    720
- *   
+ * 
+ *                             -1^k       2*k+1
+ *          = sum<k=0,inf>( ---------- * x^     )   :only odd term, odd is 2*k+1
+ *                           (2*k+1)!
 */
 template<typename Number>
-Number sin(const Number& x) {
-  const Number eps = std::numeric_limits<Number>::epsilon();
-  const Number neg_x_x = -(x*x);
+Number sin(const Number& x, const Number pi = static_cast<Number>(3.141592653589793)) {
+  if ( x < 0 ) {
+    //  convergence optimize, sin(x) = -sin(-x)
+    return -sin(abs(x), pi);
+  } else
+  if ( x >= pi/4 ) {
+    // convergence optimize
+    const Number pio4 = pi / 4;
+    Number y = fmod(x, pio4);
+    switch (static_cast<int>(trunc(x/pio4)) % 8) {
+      case 0: return sin(y, pi);
+      case 1: return cos(pio4-y, pi);
+      case 2: return cos(-y, pi);
+      case 3: return sin(pio4-y, pi);
+
+      case 4: return -sin(y, pi);
+      case 5: return -cos(pio4-y, pi);
+      case 6: return -cos(-y, pi);
+      case 7: return -sin(pio4-y, pi);
+    }
+  } else 
+  if ( x == 0 ) {
+    // not convergence
+    return static_cast<Number>(0);
+  }
+
+  assert( 0 < x && x < pi/4 );
+  // sum maclaurin_series
+  const Number eps = static_cast<Number>(0.01);
   Number series = 0;
+  const Number epsR = std::numeric_limits<Number>::epsilon();
+  Number seriesR = 0;
+
+  const Number neg_x_x = -(x*x);
   Number term = x;
-  Number n = 1;
+  Number k = 0;
   do {
     series += term;
-/**
- *  nth[n+2]     -1*pow(x,n+2)     1*pow(x,n)       -1*x*x
- * ----------- = --------------- / ------------ = -------------
- *   nth[n]        fact(n+2)         fact(n)      (n+1)*(n+2)
-*/
-    term *= ( neg_x_x / (n+=1) / (n+=1) ); 
-  } while ( abs(term) >= eps*abs(series) );
+    /**
+     *  term[k+1]       -1^(k+1)       2*(k+1)+1      -1^k       2*k+1
+     * ----------- = -------------- * x^         / ---------- / x^
+     *  term[k]       (2*(k+1)+1)!                  (2*k+1)!
+     * 
+     *                     (2*k+1)!     x^(2*k+3)
+     *             = -1 * ---------- * -----------
+     *                     (2*k+3)!     x^(2*k+1)
+     *                            1
+     *             = -1 * ----------------- * x*x
+     *                     (2*k+2)*(2*k+3)
+    */
+    term *= ( neg_x_x / (2*k+2) / (2*k+3) );
+    k += 1;
+  } while ( term >= eps*series );
+  do {
+    seriesR += term;
+    term *= ( neg_x_x / (2*k+2) / (2*k+3) );
+    k += 1;
+  } while ( abs(term) >= epsR*abs(seriesR) );
 
-  return series;
+  return series + seriesR;
 }
 
 /**
- * sine function:
+ * cosine function:
  *   use maclaurin_series
  * 
  * @param x 
- *   (-inf, inf)
+ *   [-pi,pi], inaccurate in (-inf, inf) because substraction in fmod(x,..), 
+ *   fmod(more_precision_number_type(x),calculate_pi<more_precision_number_type>()).
  * 
  * @return 
  *   [0, 1]
  * 
  * @series expansion
- *                           dNcos(0)
- *   cos(x) = Sum[N=0,inf]( ---------- * pow(x,N) )    :integration by parts( Maclaurin series )
- *                           fact(N)
+ *                           d<k>cos(0)     k
+ *   cos(x) = sum<k=0,inf>( ------------ * x^ )    :integration by parts( maclaurin_series )
+ *                               k!
  * 
  *                      -1              1                  -1                        1
  *          = 1 + -0 + ----*x*x + 0 + ----*x*x*x*x + -0 + -----*x*x*x*x*x*x + 0 + -------*x*x*x*x*x*x*x*x + ....
  *                       2             24                  720                     40320
+ * 
+ *                            -1^k       2*k
+ *          = sum<k=0,inf>( --------- * x^   )     :only even term, even is 2*k
+ *                           (2*k)!
 */
 template<typename Number>
-Number cos(const Number& x) {
-  const Number eps = std::numeric_limits<Number>::epsilon();
-  const Number neg_x_x = -(x*x);
+Number cos(const Number& x, const Number pi = static_cast<Number>(3.141592653589793)) {
+  if ( abs(x) >= pi/4 ) {
+    // convergence optimize
+    const Number pio4 = pi / 4;
+    Number y = fmod(x, pio4);
+    switch (static_cast<int>(trunc(x/pio4)) % 8) {
+      case 0: return cos(y, pi);
+      case 1: return sin(pio4-y, pi);
+      case 2: return -sin(y, pi);
+      case 3: return -cos(pio4-y, pi);
+
+      case 4: return -cos(y, pi);
+      case 5: return -sin(pio4-y, pi);
+      case 6: return sin(y, pi);
+      case 7: return cos(pio4-y, pi);
+    }
+  } else 
+  if ( x == 0 ) {
+    // seriesR not convergence
+    return static_cast<Number>(1);
+  }
+
+  assert( -pi/4 < x && x < pi/4 );
+  // sum maclaurin_series
+  const Number eps = static_cast<Number>(0.01);
   Number series = 0;
+  const Number epsR = std::numeric_limits<Number>::epsilon();
+  Number seriesR = 0;
+
+  const Number neg_x_x = -(x*x);
   Number term = 1;
-  Number n = 0;
+  Number k = 0;
   do {
     series += term;
-/**
- *  nth[n+2]     -1*pow(x,n+2)     1*pow(x,n)       -1*x*x
- * ----------- = --------------- / ------------ = -------------
- *  nth[n]         fact(n+2)         fact(n)      (n+1)*(n+2)
-*/
-    term *= ( neg_x_x / (n+=1) / (n+=1) ); 
+    /**
+     *  term[k+1]      -1^(k+1)      2*(k+1)     -1^k      2*k
+     * ----------- = ------------ * x^       / -------- / x^
+     *  term[k]       (2*(k+1))!                (2*k)!
+     * 
+     *                     (2*k)!       x^(2*k+2)
+     *             = -1 * ---------- * ----------
+     *                     (2*k+2)!     x^(2*k)
+     * 
+     *                            1
+     *             = -1 * ----------------- * x*x
+     *                     (2*k+1)*(2*k+2)
+    */
+    term *= ( neg_x_x / (2*k+1) / (2*k+2) ); 
+    k += 1;
   } while ( abs(term) >= eps*abs(series) );
+  do {
+    seriesR += term;
+    term *= ( neg_x_x / (2*k+1) / (2*k+2) ); 
+    k += 1;
+  } while ( abs(term) >= epsR*abs(seriesR) );
 
-  return series;
+  return series + seriesR;
 }
 
 /**
@@ -1114,8 +1210,8 @@ Number cos(const Number& x) {
  *   tan(x) = sin(x*2)/(cos(x*2) + 1)
 */
 template<typename Number> inline
-Number tan(const Number& x) {
-  return sin(x) / cos(x);
+Number tan(const Number& x, const Number pi = static_cast<Number>(3.141592653589793)) {
+  return sin(x,pi) / cos(x,pi);
 /**
  * @alternative of 'maclaurin_series'
  *   tan(x) = ....

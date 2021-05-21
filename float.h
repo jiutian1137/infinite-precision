@@ -1466,7 +1466,7 @@ public:
     return floatX{ left.bitset() & abs_mask };
   }
 
-  static floatX floor(const floatX& left) {
+  static floatX trunc(const floatX& left) {
     const auto zero_exponent = exponent_bias_bitset();
 
     // only fraction, 1.010101010111... * exp2(0)
@@ -1488,7 +1488,7 @@ public:
     return floatX{ left.bitset() & trunc_mask };
   }
 
-  static floatX fract(const floatX& left) {
+  static floatX frac(const floatX& left) {
     const auto zero_exponent = exponent_bias_bitset();
 
     // 1.010101010111... * exp2(0), check only fraction
@@ -1996,18 +1996,9 @@ floatX<m,e,opt> abs(const floatX<m,e,opt>& x) {
 template<size_t m, size_t e, bool opt> inline
 floatX<m,e,opt> floor(const floatX<m,e,opt>& x) {
   if ( x >= 0 ) {
-    return floatX<m,e,opt>::floor(x);
+    return floatX<m,e,opt>::trunc(x);
   } else {
-    return floatX<m,e,opt>::floor(x) - 1;
-  }
-}
-
-template<size_t m, size_t e, bool opt> inline
-floatX<m,e,opt> fract(const floatX<m,e,opt>& x) {
-  if ( x >= 0 ) {
-    return floatX<m,e,opt>::fract(x);
-  } else {
-    return 1 - floatX<m,e,opt>::fract(x);
+    return floatX<m,e,opt>::trunc(x) - 1;
   }
 }
 
@@ -2019,6 +2010,21 @@ floatX<m,e,opt> ceil(const floatX<m,e,opt>& x) {
 template<size_t m, size_t e, bool opt> inline
 floatX<m,e,opt> round(const floatX<m,e,opt>& x) {
   return floor(x + 0.5);
+}
+
+template<size_t s, size_t e, bool opt> inline
+floatX<s,e,opt> trunc(const floatX<s,e,opt>& x) {
+  return floatX<s,e,opt>::trunc(x);
+}
+
+template<size_t s, size_t e, bool opt> inline
+floatX<s,e,opt> frac(const floatX<s,e,opt>& x) {
+  return floatX<s,e,opt>::frac(x);
+}
+
+template<size_t s, size_t e, bool opt> inline
+floatX<s,e,opt> fmod(const floatX<s,e,opt>& x, const floatX<s,e,opt>& y) {
+  return x - y * trunc(x/y);
 }
 
 /** IEEE754 single-precision
@@ -2054,16 +2060,22 @@ inline float64_t abs(float64_t x) { return _CSTD fabs(x); }
 using _CSTD floor;
 inline float32_t floor(float32_t x) { return _CSTD floorf(x); }
 inline float64_t floor(float64_t x) { return _CSTD floor(x); }
-inline float fract(float x) { return x - _CSTD floorf(x); }
-inline double fract(double x) { return x - _CSTD floor(x); }
-inline float32_t fract(float32_t x) { return x - _CSTD floorf(x); }
-inline float64_t fract(float64_t x) { return x - _CSTD floor(x); }
 using _CSTD ceil;
 inline float32_t ceil(float32_t x) { return _CSTD ceilf(x); }
 inline float64_t ceil(float64_t x) { return _CSTD ceil(x); }
 using _CSTD round;
 inline float32_t round(float32_t x) { return _CSTD roundf(x); }
 inline float64_t round(float64_t x) { return _CSTD round(x); }
+using _CSTD trunc;
+inline float32_t trunc(float32_t x) { return _CSTD truncf(x); }
+inline float64_t trunc(float64_t x) { return _CSTD trunc(x); }
+inline float frac(float x) { return x - _CSTD truncf(x); }
+inline double frac(double x) { return x - _CSTD trunc(x); }
+inline float32_t frac(float32_t x) { return x - _CSTD truncf(x); }
+inline float64_t frac(float64_t x) { return x - _CSTD trunc(x); }
+using _CSTD fmod;
+inline float32_t fmod(float32_t x, float32_t y) { return _CSTD fmodf(x, y); }
+inline float64_t fmod(float64_t x, float64_t y) { return _CSTD fmod(x, y); }
 
 }// namespace calculation
 
