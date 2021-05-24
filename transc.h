@@ -1,8 +1,8 @@
 #pragma once
 /*{ "clmagic/calculation/fundamental/transcendental_functions.h":{
-  "Author":"LongJiangnan",
-  "Date":"2019-2021",
-  "License":"Please identify Author",
+  "License": "Please identify Author",
+  "Author": "LongJiangnan",
+  "Date": "2019-2021",
 
   "decision-tree": {
   <!!! Only choose one, or make the same mistake>
@@ -336,27 +336,36 @@ Number fact2(Number order) {
 */
 template<typename Integer = unsigned long long>
 Integer binomial(size_t power, size_t nth) {
-#if defined __has_include && __has_include("rational.h")
+#if 1
 
-  rationalX<Integer> result = 1;
+  Integer result_num = 1;
+  Integer result_den = 1;
 
   assert( nth <= power );
   if ( nth > power - nth ) {
     Integer k = nth + 1;
-    Integer n = power - nth;
+    Integer n = power - nth; 
     for ( ; k <= power; ++k, --n) {
-      result *= rationalX<Integer>(k,n);
+      result_num *= k;
+      result_den *= n;
+      Integer divsor = gcd(result_num, result_den);
+      result_num /= divsor;
+      result_den /= divsor;
     }
   } else {
     Integer k = power - nth + 1;
     Integer n = nth;
     for ( ; k <= power; ++k, --n) {
-      result *= rationalX<Integer>(k,n);
+      result_num *= k;
+      result_den *= n;
+      Integer divsor = gcd(result_num, result_den);
+      result_num /= divsor;
+      result_den /= divsor;
     }
   }
 
-  assert( result.numerator % result.denominator == 0 );
-  return result.numerator / result.denominator;
+  assert( result_num % result_den == 0 );
+  return result_num / result_den;
 
 #else
 
@@ -995,23 +1004,128 @@ Number calculate_pi() {
   Number seriesR = 0;
   const Number epsR = std::numeric_limits<Number>::epsilon();
 
+  size_t k = 0;
   Number k8 = 0;
   Number a = 1;
   Number term = a * (4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6));
   do {
+    ++k;
 		series += term;
     a /= 16;
     k8 += 8;
     term = a * (4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6));
   } while ( abs(term) >= eps * abs(series) );
   do {
-    seriesR += term;
+    ++k;
+    seriesR += term;;
     a /= 16;
     k8 += 8;
     term = a * (4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6));
   } while ( abs(term) >= epsR * abs(seriesR) );
 
 	return series + seriesR;
+}
+
+template<typename Number, typename Rational>
+Number fmod_pi(const Number& x, const Rational pi_scale, const Number pi = static_cast<Number>(3.141592653589793)) {
+  /** 
+   * @the problem
+   *  pi's precision is finite, for example 16digit,
+   *  so, arithmetic only decrease precision, then less equal than 16digit,
+   *  decrease precision at binary 'substraction' with two almost equal numbers, final less than 16digit.
+   * 
+   * @variables
+   *   input number is finite precision, this is correct,
+   *   but pi should infinite precision.
+   * 
+   * @solusion
+   *   we replace 'pi' by Bailey-Borwein-Plouffe-series, 
+   *   but still accuracy not change or more bad.
+   * 
+   *   @analysis
+   *     x - trunc(x/pi)*pi = y, x = 10000
+   * 
+   *       10000.0                 :16 precision
+   *     -  9973.399999999999'8939 :16 precision, 3183 * 3.1333333333333333 = 9973.4
+   *     =    26.600000000000'364  :14 precision, see the problem line3
+   * 
+   *       26.600000000000'36 4     :14 precision
+   *     - 25.747710622710 62'51517 :16 precision, 3183 * 0.0080891330891330899 = 25.747710622710622710622710622711
+   *     =  0.852289377289'73 975   :12 precision, see the problem line3
+   * 
+   *       0.852289377289'7397 5    :12 precision
+   *     - 0.524952850458 3650'8248 :16 precision, 3183 * 0.00016492392411510056 = ...
+   *     = 0.327336526831'3747 1    :12 precision
+   * 
+   *     ......
+   *     ...
+   * 
+   *     'first few' terms in series of 'pi', that decrease precision, 
+   *     because this target is 'modulo', no matter how large number, that must substracted by 'almost equal' numbers in process,
+   *     'after' terms are steady...
+   *     
+   *  @improvement
+   *    arithmetic for 'first few' terms, we use 'rational number' calculate, since 'pi' is natural.
+   *    the first, we split 'x' to integer part and fraction part.
+   * 
+   *    x = i + f
+   *    n = trunc(x / pi)
+   *    y = x - pi*n
+   *
+   *    y/n = x/n - pi
+   *    y/n = (i + f)/n - pi
+   *    y/n = i/n + f/n - pi
+   *    y/n = (i/n - pi) + f/n
+   *    y = (i/n - pi)*n + f
+   * 
+   *    we get almost all precision, input x less than 1000000.0 .
+   *    !Notice: except when 'y' near to 0 !!!!!!!!!!!!!!!!!!!!!!!!!
+  */
+
+  long long n = static_cast<long long>( trunc(x / (pi*static_cast<Number>(pi_scale))) );
+  if ( n == 0 ) {
+    return x;
+  }
+  if ( abs( frac(x / (pi*static_cast<Number>(pi_scale)))) < std::numeric_limits<Number>::epsilon() ) {
+    return 0;
+  }
+  
+  Rational xi = Rational(static_cast<long long>(trunc(x)), n);
+  int k8i = 0;
+  long long exp16_ki = 1;
+  try {
+	  do {
+      xi = xi - Rational(4,k8i+1)/exp16_ki*pi_scale
+        + Rational(2,k8i+4)/exp16_ki*pi_scale
+        + Rational(1,k8i+5)/exp16_ki*pi_scale
+        + Rational(1,k8i+6)/exp16_ki*pi_scale;
+      if ( exp16_ki > std::numeric_limits<long long>::max() / 16 ) {
+        break;
+      }
+      k8i += 8;
+      exp16_ki *= 16;
+    } while ( true );
+  }
+  catch (const std::underflow_error&) {
+    // ...
+  }
+  catch (const std::overflow_error&) {
+    // ...
+  }
+
+  const Number eps = std::numeric_limits<Number>::epsilon();
+  Number yi = static_cast<Number>(xi);
+  Number k8 = static_cast<Number>(k8i);
+  Number exp16_k = static_cast<Number>(exp16_ki);
+  Number term = ( 4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6) ) / exp16_k;
+	do {
+    yi -= term*static_cast<Number>(pi_scale);
+    k8 += 8;
+    exp16_k *= 16;
+		term = ( 4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6) ) / exp16_k;
+	} while ( abs(term) >= eps * abs(yi) );
+
+  return yi*n + frac(x);
 }
 
 template<typename Number>
@@ -1022,57 +1136,67 @@ Number cos(const Number& x, const Number pi);
  *   use maclaurin_series
  * 
  * @param x
- *   [-pi,pi], inaccurate in (-inf, inf) because substraction in fmod(x,..), 
- *   fmod(more_precision_number_type(x),calculate_pi<more_precision_number_type>()).
+ *   [-pi*2, pi*2], 
+ *   inaccurate in (-inf, inf) because substraction in fmod(x, pi/2), 
+ *   inaccurate at slightly great than pi/2 because ... in fmod(x, pi/2).
  * 
  * @return 
  *   [0, 1]
  * 
+ * @derivative
+ *   differentiate(sin, x) = cos(x)
+ * 
+ * @integral
+ *   integrate(sin(x), dx) = -cos(x) + constant
+ * 
  * @series expansion
- *                           d<k>sin(0)     k
- *   sin(x) = sum<k=0,inf>( ------------ * x^ )     :integration by parts( maclaurin_series )
- *                               k!
+ *   sin(x) = -sin(x)              :odd function
  * 
- *                          -1               1                     -1
- *          = 0 + x + -0 + ----*x*x*x + 0 + ----*x*x*x*x*x + -0 + -----*x*x*x*x*x*x*x + ...
- *                           3               24                    720
+ *   sin(x) = sin(x + pi*2 * n)    :period function
  * 
- *                             -1^k       2*k+1
- *          = sum<k=0,inf>( ---------- * x^     )   :only odd term, odd is 2*k+1
- *                           (2*k+1)!
+ *   sin(x*2) = 2 * sin(x) * cos(x)             :double angle law
+ * 
+ *   sin(x/2) = sqrt((1 - cos(x))/2)            :half angle law
+ * 
+ *   sin(a+b) = sin(a)*cos(b) + cos(a)*sin(b)   :sum law
+ *  
+ *   sin(a-b) = sin(a)*cos(b) - cos(a)*sin(b)   :difference law
+ * 
+ *   sin(a) + sin(b) = 2 * sin((a+b)/2) * cos((a-b)/2)   :sum to product law
+ * 
+ *   sin(a) * sin(b) = 1/2 * ( cos(a-b) - cos(a+b) )     :product to sum law
+ * 
+ *   sin(x) = sum<k=0,inf>( pow(-1,k)/fact(2*k+1) * pow(x,2*k+1) )   :maclaurin_series, only odd term, odd is 2*k+1
 */
 template<typename Number>
 Number sin(const Number& x, const Number pi = static_cast<Number>(3.141592653589793)) {
   if ( x < 0 ) {
     //  convergence optimize, sin(x) = -sin(-x)
     return -sin(abs(x), pi);
-  } else
-  if ( x >= pi/4 ) {
-    // convergence optimize
-    const Number pio4 = pi / 4;
-    Number y = fmod(x, pio4);
-    switch (static_cast<int>(trunc(x/pio4)) % 8) {
-      case 0: return sin(y, pi);
-      case 1: return cos(pio4-y, pi);
-      case 2: return cos(-y, pi);
-      case 3: return sin(pio4-y, pi);
-
-      case 4: return -sin(y, pi);
-      case 5: return -cos(pio4-y, pi);
-      case 6: return -cos(-y, pi);
-      case 7: return -sin(pio4-y, pi);
-    }
-  } else 
-  if ( x == 0 ) {
+  } else if ( x == 0 ) {
     // not convergence
     return static_cast<Number>(0);
+  } else if ( x > pi/2 ) {
+    // convergence optimize
+    const Number pio2 = pi / 2;
+#if defined __has_include && __has_include("rational.h")
+    Number y = fmod_pi(x, rational64_t(1,2), pi);
+#else 
+    Number y = fmod(x, pio2);
+#endif
+    switch ( static_cast<int>(trunc(x/pio2)) % 4 ) {
+      case 0: return sin(y, pi);// 0->1
+      case 1: return cos(y, pi);// 1->0
+      case 2: return -sin(y, pi);// 0->-1
+      case 3: return -cos(y, pi);// -1->0
+    }
   }
 
-  assert( 0 < x && x < pi/4 );
+  assert( abs(x) <= pi/2 );
   // sum maclaurin_series
-  const Number eps = static_cast<Number>(0.01);
+  const Number eps = std::numeric_limits<Number>::epsilon();
   Number series = 0;
-  const Number epsR = std::numeric_limits<Number>::epsilon();
+  const Number epsR = static_cast<Number>(0.01);
   Number seriesR = 0;
 
   const Number neg_x_x = -(x*x);
@@ -1094,7 +1218,7 @@ Number sin(const Number& x, const Number pi = static_cast<Number>(3.141592653589
     */
     term *= ( neg_x_x / (2*k+2) / (2*k+3) );
     k += 1;
-  } while ( term >= eps*series );
+  } while ( abs(term) >= eps*abs(series) );
   do {
     seriesR += term;
     term *= ( neg_x_x / (2*k+2) / (2*k+3) );
@@ -1109,53 +1233,65 @@ Number sin(const Number& x, const Number pi = static_cast<Number>(3.141592653589
  *   use maclaurin_series
  * 
  * @param x 
- *   [-pi,pi], inaccurate in (-inf, inf) because substraction in fmod(x,..), 
- *   fmod(more_precision_number_type(x),calculate_pi<more_precision_number_type>()).
+ *   [-pi*2, pi*2], 
+ *   inaccurate in (-inf, inf) because substraction in fmod(x, pi/2), 
+ *   inaccurate at slightly great than pi/2 because ... in fmod(x, pi/2).
  * 
  * @return 
  *   [0, 1]
  * 
- * @series expansion
- *                           d<k>cos(0)     k
- *   cos(x) = sum<k=0,inf>( ------------ * x^ )    :integration by parts( maclaurin_series )
- *                               k!
+  * @derivative
+ *   differentiate(cos, x) = -sin(x)
  * 
- *                      -1              1                  -1                        1
- *          = 1 + -0 + ----*x*x + 0 + ----*x*x*x*x + -0 + -----*x*x*x*x*x*x + 0 + -------*x*x*x*x*x*x*x*x + ....
- *                       2             24                  720                     40320
+ * @integral
+ *   integrate(cos(x), dx) = sin(x) + constant
  * 
- *                            -1^k       2*k
- *          = sum<k=0,inf>( --------- * x^   )     :only even term, even is 2*k
- *                           (2*k)!
+ * @alternative
+ *   cos(x) = cos(-x)             :even function
+ * 
+ *   cos(x) = cos(x + pi*2 * n)   :period function
+ * 
+ *   cos(2*x) = cos(x)*cos(x) - sin(x)*sin(x)   :double angle law
+ * 
+ *   cos(x/2) = sqrt((1 + cos(x))/2)            :half angle law
+ * 
+ *   cos(a+b) = cos(a)*cos(b) - sin(a)*sin(b)   :sum law
+ * 
+ *   cos(a-b) = cos(a)*cos(b) + sin(a)*sin(b)   :difference law
+ * 
+ *   cos(a) + cos(b) = 2 * cos((a+b)/2) * cos((a-b)/2)  :sum to product law
+ * 
+ *   cos(a) * cos(b) = 1/2 * ( cos(a-b) * cos(a+b) )    :product to sum law
+ * 
+ *   cos(x) = sum<k=0,inf>( pow(-1,k)/fact(2*k) * pow(x,2*k) )   :maclaurin_series, only even term, even is 2*k
 */
 template<typename Number>
 Number cos(const Number& x, const Number pi = static_cast<Number>(3.141592653589793)) {
-  if ( abs(x) >= pi/4 ) {
+  if ( abs(x) > pi/2 ) {
     // convergence optimize
-    const Number pio4 = pi / 4;
-    Number y = fmod(x, pio4);
-    switch (static_cast<int>(trunc(x/pio4)) % 8) {
-      case 0: return cos(y, pi);
-      case 1: return sin(pio4-y, pi);
-      case 2: return -sin(y, pi);
-      case 3: return -cos(pio4-y, pi);
-
-      case 4: return -cos(y, pi);
-      case 5: return -sin(pio4-y, pi);
-      case 6: return sin(y, pi);
-      case 7: return cos(pio4-y, pi);
+    const Number pio2 = pi / 2;
+#if defined __has_include && __has_include("rational.h")
+    Number y = fmod_pi(x, rational64_t(1,2), pi);
+#else 
+    Number y = fmod(x, pio2);
+#endif
+    switch (static_cast<int>(trunc(x/pio2)) % 4) {
+      case 0: return cos(y,pi);// 1->0
+      case 1: return -sin(y,pi);// 0->-1
+      case 2: return -cos(y,pi);// -1->0
+      case 3: return  sin(y,pi);// 0->1
     }
-  } else 
+  } else
   if ( x == 0 ) {
     // seriesR not convergence
     return static_cast<Number>(1);
   }
 
-  assert( -pi/4 < x && x < pi/4 );
+  assert( abs(x) <= pi/2 );
   // sum maclaurin_series
-  const Number eps = static_cast<Number>(0.01);
+  const Number eps = std::numeric_limits<Number>::epsilon();
   Number series = 0;
-  const Number epsR = std::numeric_limits<Number>::epsilon();
+  const Number epsR = static_cast<Number>(0.01);
   Number seriesR = 0;
 
   const Number neg_x_x = -(x*x);
@@ -1272,45 +1408,54 @@ Number tan(const Number& x, const Number pi = static_cast<Number>(3.141592653589
 template<typename Number>
 Number asin(const Number& x, const Number pi = static_cast<Number>(3.141592653589793)) {
   assert( x >= -1 && x <= 1 );
-  if (x > 0.707) {
+  if ( x > 0.707 ) {
     // convergence slow
     return pi/2 - asin(sqrt(1 - x*x));
   } else 
-  if (x < -0.707) {
+  if ( x < -0.707 ) {
     // convergence slow
     return asin(sqrt(1 - x*x)) - pi/2;
   } else 
-  if (x == 0) {
+  if ( x == 0 ) {
     // special case
     return static_cast<Number>(0);
   }
 
-  const Number eps = std::numeric_limits<Number>::epsilon();
+  // sum maclaurin_series
+  const Number eps = static_cast<Number>(0.01);
+  Number series = 0;
+  const Number epsR = std::numeric_limits<Number>::epsilon();
+  Number seriesR = 0;
+
   const Number half = static_cast<Number>(0.5);
   const Number x_x = x * x;
-  Number series = 0;
   Number term = x;
   Number n = 0;
   do {
     series += term;
-/**
- *  nth[n+1]     0.5 * 1.5 * 2.5 * ... * n.5     x^(2*(n+1)+1)     0.5 * 1.5 * 2.5 * ... * (n-1).5     x^(2*n+1)
- * ----------- = ----------------------------- * --------------- / --------------------------------- / -----------
- *  nth[n]                 fact(n+1)               2*(n+1)+1                   fact(n)                   2*n+1
- *           
- *                n.5     x^(2*n+3)     x^(2*n+1)
- *             = ----- * ----------- / -----------
- *                n+1       2*n+3         2*n+1
- *
- *                n.5     x*x*(2*n+1)
- *             = ----- * -------------
- *                n+1       2*n+3
-*/
+    /**
+     *  nth[n+1]     0.5 * 1.5 * 2.5 * ... * n.5     x^(2*(n+1)+1)     0.5 * 1.5 * 2.5 * ... * (n-1).5     x^(2*n+1)
+     * ----------- = ----------------------------- * --------------- / --------------------------------- / -----------
+     *  nth[n]                 fact(n+1)               2*(n+1)+1                   fact(n)                   2*n+1
+     *           
+     *                n.5     x^(2*n+3)     x^(2*n+1)
+     *             = ----- * ----------- / -----------
+     *                n+1       2*n+3         2*n+1
+     *
+     *                n.5     x*x*(2*n+1)
+     *             = ----- * -------------
+     *                n+1       2*n+3
+    */
     term *= (n+half)/(n+1) * x_x*(2*n+1)/(2*n+3);
     n += 1;
   } while ( abs(term) >= eps*abs(series) );
+  do {
+    seriesR += term;
+    term *= (n+half)/(n+1) * x_x*(2*n+1)/(2*n+3);
+    n += 1;
+  } while ( abs(term) >= epsR*abs(seriesR) );
 
-  return series;
+  return series + seriesR;
 }
 
 /**
@@ -1356,12 +1501,10 @@ Number atan(const Number& x) {
   if ( x < 0 ) {
     // optimize convergence, remove abs(...)
     return -atan(abs(x));
-  } else 
-  if ( x > 0.35 ) {
+  } else if ( x > 0.35 ) {
     // convergence slow
     return atan(x / (1 + sqrt(1 + x*x))) * 2;
-  } else 
-  if ( x == 0 ) {
+  } else if ( x == 0 ) {
     // not convergence
     return static_cast<Number>(0);
   }

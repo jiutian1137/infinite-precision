@@ -1,9 +1,10 @@
 #pragma once
 /*{ "clmagic/calculation/fundamental/float":{
-  "Author": "LongJiangnan",
-  "Mail": "Jiang1998Nan@outlook.com",
-  "Date": "2019-2021",
+  "Description": "infinite precision calculation"
   "License": "Please identify Author",
+  "Author": "LongJiangnan",
+  "Date": "2019-2021",
+  "Mail": "Jiang1998Nan@outlook.com",
   "Reference": [
     "https://www.rfwireless-world.com/Tutorials/floating-point-tutorial.html",
     "https://www.slideshare.net/prochwani95/06-floating-point"
@@ -233,16 +234,14 @@ std::bitset<_OutBits> bitset_cast(const std::bitset<_InBits>& _Source) {
 
 #include <math.h>
 #include <assert.h>
-
 namespace calculation 
 {
 
 #define floating_operation_special_case(PROC_ZERO, PROC_INF, PROC_NAN) \
-if ( floating == zero_bitset ) {                      \
+if ( (floating & ~sign_mask) == zero_bitset ) {       \
 	/** special case 'zero' */                         \
   PROC_ZERO;                                         \
 }                                                    \
-                                                     \
 if ( (floating & inf_bitset) == inf_bitset ) {       \
 	if ( (floating & significand_mask) != 0 ) {        \
 		/** special case 'NaN' */                        \
@@ -253,13 +252,15 @@ if ( (floating & inf_bitset) == inf_bitset ) {       \
 	PROC_INF;                              \
 }                               \
 
-/** floating'significand */
 template<typename Bitset> 
-void floating_significand(const Bitset& floating, Bitset& significand,
+void floating_significand(
+  const Bitset& floating, 
+        Bitset& significand,
 	const Bitset zero_bitset,
 	const Bitset inf_bitset,
 	const Bitset nan_bitset,
 	const Bitset significand_mask,
+	const Bitset sign_mask,
 	const Bitset exponent_bias_bitset,
 	const Bitset possign_bitset)
 {
@@ -277,14 +278,18 @@ void floating_significand(const Bitset& floating, Bitset& significand,
 	significand |= possign_bitset;
 }
 
-/** floating'exponent */
 template<typename Bitset>
-void floating_exponent(const Bitset& floating, Bitset& exponent, Bitset& exponent_part, Bitset& sign_part,
+void floating_exponent(
+   const  Bitset& floating, 
+  /*OUT*/ Bitset& exponent, 
+  /*Reg1*/Bitset& exponent_part, 
+  /*Reg2*/Bitset& sign_part,
 	const Bitset zero_bitset,
 	const Bitset inf_bitset,
 	const Bitset nan_bitset,
 	const Bitset significand_mask,
 	const Bitset exponent_mask, 
+  const Bitset sign_mask,
 	const Bitset exponent_bias_bitset, 
 	const size_t last_bit_offset,
 	const size_t hidden_significant_offset,
@@ -333,9 +338,10 @@ void floating_exponent(const Bitset& floating, Bitset& exponent, Bitset& exponen
 	exponent |= sign_part;
 }
 		
-/** floating'sign */
 template<typename Bitset>
-void floating_sign(const Bitset& floating, Bitset& sign,
+void floating_sign(
+  const Bitset& floating, 
+        Bitset& sign,
 	const Bitset zero_bitset,
 	const Bitset exponent_bias_bitset,
 	const Bitset sign_mask)
@@ -347,7 +353,11 @@ void floating_sign(const Bitset& floating, Bitset& sign,
 
 
 template<typename Bitset>
-bool need_roundup_for_nearest_even(const Bitset& significand, Bitset& sticky_mask, size_t smaller_shift) {
+bool need_roundup_for_nearest_even(
+  const Bitset& significand, 
+  Bitset& sticky_mask, 
+  size_t smaller_shift) 
+{
 /**
  * the rounding has two kinds, 
  *   one is round-up, 
@@ -398,7 +408,7 @@ bool need_roundup_for_nearest_even(const Bitset& significand, Bitset& sticky_mas
  *     round-down-error must> epsilon/2
  *   so we round-up.
 */
-  if ( smaller_shift != 0 ) {
+  if ( smaller_shift != 0/* && smaller_shift - 1 < significand.size()*/ ) {
     bool round_bit = significand.test( smaller_shift - 1 );
     bool sticky_bit = false;
     if ( smaller_shift != 1 ) {
@@ -418,9 +428,16 @@ bool need_roundup_for_nearest_even(const Bitset& significand, Bitset& sticky_mas
 
 template<typename Bitset>
 void add_floating(
-  Bitset& this_floating, Bitset& this_significant, Bitset& this_exponent, Bitset& this_sign,
-  const Bitset& right_floating, Bitset& right_significant, Bitset& right_exponent, Bitset& right_sign,
-  Bitset& exponent_difference, Bitset& sticky_mask,
+  /*INOUT*/Bitset& this_floating,
+  /*Reg1*/ Bitset& this_significant, 
+  /*Reg2*/ Bitset& this_exponent,
+  /*Reg3*/ Bitset& this_sign,
+    const  Bitset& right_floating, 
+  /*Reg4*/ Bitset& right_significant,
+  /*Reg5*/ Bitset& right_exponent,
+  /*Reg6*/ Bitset& right_sign,
+  /*Reg7*/ Bitset& exponent_difference,
+  /*Reg8*/ Bitset& sticky_mask,
   const Bitset zero_bitset,
   const Bitset inf_bitset,
   const Bitset nan_bitset, 
@@ -463,13 +480,13 @@ void add_floating(
   assert( hidden_significant_offset <= lastbit_offset );
   size_t shift = 0;
   if ( hidden_significant_offset < lastbit_offset ) {
-/**
- *    11111111
- * +  11111111
- * = 111111110
- * 
- * so we only reserved '1' bit
-*/
+    /**
+     *    11111111
+     * +  11111111
+     * = 111111110
+     * 
+     * so we only reserved '1' bit
+    */
     const size_t reserved_bit = 1;
     shift = lastbit_offset - hidden_significant_offset;
     shift -= reserved_bit;
@@ -483,7 +500,7 @@ void add_floating(
     exponent_difference = right_exponent - this_exponent;
     size_t smaller_shift = static_cast<size_t>( (exponent_difference >> exponent_offset).to_ullong() );
     
-    if ( need_roundup_for_nearest_even(this_significant, sticky_mask, smaller_shift) ){
+    if ( smaller_shift - 1 <= lastbit_offset && need_roundup_for_nearest_even(this_significant, sticky_mask, smaller_shift) ){
       this_significant >>= smaller_shift;
       this_significant += 1;
     } else {
@@ -499,7 +516,7 @@ void add_floating(
     exponent_difference = this_exponent - right_exponent;
     size_t smaller_shift = static_cast<size_t>( (exponent_difference >> exponent_offset).to_ullong() );
 
-    if ( need_roundup_for_nearest_even(right_significant, sticky_mask, smaller_shift) ){
+    if ( smaller_shift - 1 <= lastbit_offset && need_roundup_for_nearest_even(right_significant, sticky_mask, smaller_shift) ){
       right_significant >>= smaller_shift;
       right_significant += 1;
     } else {
@@ -545,15 +562,15 @@ void add_floating(
       if ( this_significant.test(hidden_significant_offset + 1) ) {
         this_significant >>= 1;
         smaller_shift += 1;
-/**
- *     1111 1111
- * +   0000 0001
- * = 1 0000 0000
- *            |
- *         this is test-bit
- *            |
- *         it must be zero, if carry
-*/
+        /**
+         *     1111 1111
+         * +   0000 0001
+         * = 1 0000 0000
+         *            |
+         *         this is test-bit
+         *            |
+         *         it must be zero, if carry
+        */
       }
     } else {
       this_significant >>= smaller_shift;
@@ -610,9 +627,14 @@ void add_floating(
 
 template<typename Bitset, typename BigBitset>
 void mul_floating(
-  Bitset& this_floating, BigBitset& this_significand, Bitset& this_exponent,
-  const Bitset& right_floating, BigBitset& right_significand, Bitset& right_exponent,
-  Bitset& exponent_difference, BigBitset& sticky_mask,
+  /*INOUT*/Bitset&    this_floating,
+  /*Reg1*/ BigBitset& this_significand,
+  /*Reg2*/ Bitset&    this_exponent,
+    const  Bitset&    right_floating,
+  /*Reg3*/ BigBitset& right_significand,
+  /*Reg4*/ Bitset&    right_exponent,
+  /*Reg5*/ Bitset&    exponent_difference,
+  /*Reg6*/ BigBitset& sticky_mask,
   const Bitset zero_bitset,
   const Bitset inf_bitset,
   const Bitset nan_bitset,
@@ -714,15 +736,22 @@ void mul_floating(
   /** 4. encode ... */
   this_floating = 
     (reinterpret_cast<const Bitset&>(this_significand)&significand_mask)
-    |this_exponent
-    |( (this_floating&sign_mask)^(right_floating&sign_mask) );
+    | this_exponent
+    | ( (this_floating&sign_mask)^(right_floating&sign_mask) );
 }
 
 template<typename Bitset>
 void div_floating(
-  Bitset& this_floating, Bitset& dividend, Bitset& this_significand, Bitset& this_exponent,
-  const Bitset& right_floating, Bitset& divisor, Bitset& right_exponent,
-  Bitset& exponent_difference, Bitset& divbit, Bitset& sticky_mask,
+  /*INOUT*/Bitset& this_floating,
+  /*Reg1*/ Bitset& dividend,
+  /*Reg2*/ Bitset& this_significand,
+  /*Reg3*/ Bitset& this_exponent,
+    const  Bitset& right_floating, 
+  /*Reg4*/ Bitset& divisor,
+  /*Reg5*/ Bitset& right_exponent,
+  /*Reg6*/ Bitset& exponent_difference,
+  /*Reg7*/ Bitset& divbit,
+  /*Reg8*/ Bitset& sticky_mask,
   const Bitset zero_bitset,
   const Bitset inf_bitset,
   const Bitset nan_bitset,
@@ -766,14 +795,14 @@ void div_floating(
   assert( hidden_significant_offset <= lastbit_offset );
   size_t shift = 0;
   if ( hidden_significant_offset < lastbit_offset ) {
-/**
- *    11111111
- * /  10000000
- * ------------
- * =  11111111
- * 
- * so we only reserved '0' + '1'(division) bit
-*/
+    /**
+     *    11111111
+     * /  10000000
+     * ------------
+     * =  11111111
+     * 
+     * so we only reserved '0' + '1'(division) bit
+    */
     const size_t reserved_bit = 1;
     shift = lastbit_offset - hidden_significant_offset;
     shift -= reserved_bit;
@@ -839,18 +868,18 @@ void div_floating(
   /** 6. encode ... */
   this_floating = 
     (this_significand&significand_mask)
-    |this_exponent
-    |( (this_floating&sign_mask)^(right_floating&sign_mask) );
+    | this_exponent
+    | ( (this_floating&sign_mask)^(right_floating&sign_mask) );
 }
 
 
 
 /** 
- * infinite precision floating_point
- *   digit: (1 + 0.Significand) * 2^Exponent * (-1)^Sign
- * __s: SignificandBits
- * __e: ExponentBits
- * __s + __e + 1 = Bits
+ * TEMPLATE infinite precision floating_point
+ *   digit: (1 + 0.Significand) * 2^Exponent * (-1)^Sign, 
+ *   __s + __e + 1 = Bits.
+ * @tparam __s SignificandBits
+ * @tparam __e ExponentBits
 */
 template<size_t __s, size_t __e, bool _IsOpt = false>
 class floatX {
@@ -1425,6 +1454,7 @@ public:
       inf_bitset(),
       signaling_NaN_bitset(),
       significand_mask(),
+      sign_mask(),
       exponent_bias_bitset(),
       possign_bitset()
       );
@@ -1441,6 +1471,7 @@ public:
       signaling_NaN_bitset(),
       significand_mask(),
       exponent_mask(),
+      sign_mask(),
       exponent_bias_bitset(),
       bits - 1,
       significand_bits,
@@ -1520,7 +1551,7 @@ public:
   }		
 };
 
-/** IEEE754 single-precision, template specialization for optimization */
+/** TEMPLATE SPECIAL, IEEE754 single-precision */
 template<>
 class floatX<23,8,true> {
   using _Mybase = floatX<23, 8, false>;
@@ -1657,7 +1688,7 @@ public:
 	}
 };
 
-/** IEEE754 double-precision, template specialization for optimization */
+/**  TEMPLATE SPECIAL, IEEE754 double-precision */
 template<>
 class floatX<52,11,true> {
 	using _Mybase = floatX<52, 11, false>;
@@ -1795,42 +1826,42 @@ public:
 
 // next_work: { XXXX quadruple-precision-template spectialation }
 
-#define __calculation_float_operator_with_literal(_OP_, _LITERAL_TYPE_)                    \
-template<size_t m, size_t e, bool _IsOpt> inline                                            \
-floatX<m,e,_IsOpt> operator##_OP_##(const floatX<m,e,_IsOpt>& left, _LITERAL_TYPE_ right) { \
-  return left _OP_ static_cast< floatX<m,e,_IsOpt> >(right);                                \
-}   
+#define __calculation_float_operator_with_literal(_OP_, _LITERAL_TYPE_)               \
+template<size_t s, size_t e, bool opt> inline                                         \
+floatX<s,e,opt> operator##_OP_##(const floatX<s,e,opt>& left, _LITERAL_TYPE_ right) { \
+  return left _OP_ static_cast< floatX<s,e,opt> >(right);                             \
+}
 
-#define __calculation_float_operator_with_literal2(_OP_, _LITERAL_TYPE_)                 \
-template<size_t m, size_t e, bool _IsOpt> inline                                           \
-floatX<m,e,_IsOpt> operator##_OP_##(_LITERAL_TYPE_ left, const floatX<m,e,_IsOpt>& right) { \
-  return static_cast< floatX<m,e,_IsOpt> >(left) _OP_ right;                                \
-}   
+#define __calculation_float_operator_with_literal2(_OP_, _LITERAL_TYPE_)              \
+template<size_t s, size_t e, bool opt> inline                                         \
+floatX<s,e,opt> operator##_OP_##(_LITERAL_TYPE_ left, const floatX<s,e,opt>& right) { \
+  return static_cast< floatX<s,e,opt> >(left) _OP_ right;                             \
+}
 
 #define __calculation_float_operator_with_literal_commutatibity(_OP_, _LITERAL_TYPE_) \
-template<size_t m, size_t e, bool _IsOpt> inline                                          \
-floatX<m,e,_IsOpt> operator##_OP_##(const floatX<m,e,_IsOpt>& left, _LITERAL_TYPE_ right) { \
-  return left _OP_ static_cast< floatX<m,e,_IsOpt> >(right);                                \
-}                                                                                           \
-template<size_t m, size_t e, bool _IsOpt> inline                                            \
-floatX<m,e,_IsOpt> operator##_OP_##(_LITERAL_TYPE_ left, const floatX<m,e,_IsOpt>& right) { \
-  return static_cast< floatX<m,e,_IsOpt> >(left) _OP_ right;                                \
-} 
+template<size_t s, size_t e, bool opt> inline                                         \
+floatX<s,e,opt> operator##_OP_##(const floatX<s,e,opt>& left, _LITERAL_TYPE_ right) { \
+  return left _OP_ static_cast< floatX<s,e,opt> >(right);                             \
+}                                                                                     \
+template<size_t s, size_t e, bool opt> inline                                         \
+floatX<s,e,opt> operator##_OP_##(_LITERAL_TYPE_ left, const floatX<s,e,opt>& right) { \
+  return static_cast< floatX<s,e,opt> >(left) _OP_ right;                             \
+}
 
-#define __calculation_float_lvalueoperator_with_literal(_OP_, _LITERAL_TYPE_)             \
-template<size_t m, size_t e, bool _IsOpt> inline                                          \
-floatX<m,e,_IsOpt>& operator##_OP_##(floatX<m,e,_IsOpt>& left, _LITERAL_TYPE_ right) {    \
-  return left _OP_ static_cast< floatX<m,e,_IsOpt> >(right);                              \
-}   
+#define __calculation_float_lvalueoperator_with_literal(_OP_, _LITERAL_TYPE_)    \
+template<size_t s, size_t e, bool opt> inline                                    \
+floatX<s,e,opt>& operator##_OP_##(floatX<s,e,opt>& left, _LITERAL_TYPE_ right) { \
+  return left _OP_ static_cast< floatX<s,e,opt> >(right);                        \
+}
 
 #define __calculation_float_comparison_with_literal_commutatibity(_OP_, _LITERAL_TYPE_) \
-template<size_t m, size_t e, bool _IsOpt> inline                               \
-bool operator##_OP_##(const floatX<m,e,_IsOpt>& left, _LITERAL_TYPE_ right) { \
-  return left _OP_ static_cast< floatX<m,e,_IsOpt> >(right);                  \
-}                                                                             \
-template<size_t m, size_t e, bool _IsOpt> inline                              \
-bool operator##_OP_##(_LITERAL_TYPE_ left, const floatX<m,e,_IsOpt>& right) { \
-  return static_cast< floatX<m,e,_IsOpt> >(left) _OP_ right;                  \
+template<size_t s, size_t e, bool opt> inline                              \
+bool operator##_OP_##(const floatX<s,e,opt>& left, _LITERAL_TYPE_ right) { \
+  return left _OP_ static_cast< floatX<s,e,opt> >(right);                  \
+}                                                                          \
+template<size_t s, size_t e, bool opt> inline                              \
+bool operator##_OP_##(_LITERAL_TYPE_ left, const floatX<s,e,opt>& right) { \
+  return static_cast< floatX<s,e,opt> >(left) _OP_ right;                  \
 } 
 
 __calculation_float_lvalueoperator_with_literal(+=, float)
@@ -2027,12 +2058,10 @@ floatX<s,e,opt> fmod(const floatX<s,e,opt>& x, const floatX<s,e,opt>& y) {
   return x - y * trunc(x/y);
 }
 
-/** IEEE754 single-precision
-*/
+/** IEEE754 single-precision */
 using float32_t = floatX<23,8,true>;
 
-/** IEEE754 double-precision
-*/
+/** IEEE754 double-precision */
 using float64_t = floatX<52,11,true>;
 
 /** (1 + 0.Significand) * 2^Exponent * (-1)^Sign,
