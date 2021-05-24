@@ -538,7 +538,7 @@ template<typename Number>
 Number sqrt(const Number& x) {
   if ( x > 0 ) {
 
-	  const Number eps = pow(static_cast<Number>(2), - static_cast<int>(std::numeric_limits<Number>::digits/2 + 2));//@see cbrt(x)
+    const Number eps = pow(static_cast<Number>(2), - static_cast<int>(std::numeric_limits<Number>::digits/2 + 2));//@see cbrt(x)
     Number y = x;
     Number ym1;
     do {
@@ -634,15 +634,12 @@ Number cbrt(const Number& x) {
 */
 template<typename Number>
 Number exp(const Number& x) {
-  if ( x < 0 ) {
-    // convergence slow, odd terms are negative, even terms are positive 
+  if ( x < 0 ) {// convergence slow, odd terms are negative, even terms are positive 
     return 1 / exp(abs(x));
-  } else if ( x > 1 ) {
-    // convergence slow, see @alternative for 'maclaurin_series'
+  } else if ( x > 1 ) {// convergence slow, see @alternative for 'maclaurin_series'
     Number xi = floor(x);
     return exp(x - xi) * pow(exp(static_cast<Number>(1)), static_cast<int>(xi));
-  } else if ( x == 0 ) {
-    // seriesR not convergence
+  } else if ( x == 0 ) {// seriesR not convergence
     return static_cast<Number>(1);
   }
 
@@ -720,11 +717,9 @@ Number exp(const Number& x) {
 template<typename Number>
 Number atanh(const Number& x) {
   assert( -1 < x && x < 1 );
-  if ( x < 0 ) {
-    // symmetry around X-axis
+  if ( x < 0 ) {// symmetry around X-axis
     return -atanh(x);
-  } else if ( x == 0 ) {
-    // not convergence
+  } else if ( x == 0 ) {// not convergence
     return static_cast<Number>(0);
   }
 
@@ -1010,7 +1005,7 @@ Number calculate_pi() {
   Number term = a * (4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6));
   do {
     ++k;
-		series += term;
+    series += term;
     a /= 16;
     k8 += 8;
     term = a * (4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6));
@@ -1023,7 +1018,7 @@ Number calculate_pi() {
     term = a * (4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6));
   } while ( abs(term) >= epsR * abs(seriesR) );
 
-	return series + seriesR;
+  return series + seriesR;
 }
 
 template<typename Number, typename Rational>
@@ -1094,7 +1089,7 @@ Number fmod_pi(const Number& x, const Rational pi_scale, const Number pi = stati
   int k8i = 0;
   long long exp16_ki = 1;
   try {
-	  do {
+    do {
       xi = xi - Rational(4,k8i+1)/exp16_ki*pi_scale
         + Rational(2,k8i+4)/exp16_ki*pi_scale
         + Rational(1,k8i+5)/exp16_ki*pi_scale
@@ -1118,12 +1113,12 @@ Number fmod_pi(const Number& x, const Rational pi_scale, const Number pi = stati
   Number k8 = static_cast<Number>(k8i);
   Number exp16_k = static_cast<Number>(exp16_ki);
   Number term = ( 4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6) ) / exp16_k;
-	do {
+  do {
     yi -= term*static_cast<Number>(pi_scale);
     k8 += 8;
     exp16_k *= 16;
-		term = ( 4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6) ) / exp16_k;
-	} while ( abs(term) >= eps * abs(yi) );
+    term = ( 4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6) ) / exp16_k;
+  } while ( abs(term) >= eps * abs(yi) );
 
   return yi*n + frac(x);
 }
@@ -1365,113 +1360,123 @@ Number tan(const Number& x, const Number pi = static_cast<Number>(3.141592653589
  * @param x 
  *   [-1, 1]
  * 
- * @param pi 
- *   constant
- * 
  * @return 
  *   [-pi/2, pi/2]
  * 
- * @series expansion
- *                                  1
- *   asin(x) = Integral[0,x]( ---------------, dx )                                                      :f(x) = integral( df(x), dx )
- *                             sqrt(1 - x*x)
- *
- *                                     -0.5
- *           = Integral[0,x]( (1 + -x*x)^  , dx )
- *
- *                                           -0.5 * -1.5 * -2.5 * ... * (-0.5 - k + 1)        k
- *           = Integral[0,x]( Sum[k=0,inf]( -------------------------------------------*(-x*x)^ ), dx )  :'binomial-series'
- *                                                            fact(k)
- *
- *                            -0.5 * -1.5 * -2.5 * ... * (-0.5 - k + 1)                         k         
- *           = Sum[k=0,inf]( ------------------------------------------- * Integral[0,x]( (-x*x)^, dx ) )
- *                                             fact(k)
- *
- *                            -0.5 * -1.5 * -2.5 * ... * (-0.5 - k + 1)        k                   2*k
- *           = Sum[k=0,inf]( ------------------------------------------- * (-1)^ * Integral[0,x]( x^  , dx ) )
- *                                             fact(k)
- *                        
- *                            -0.5 * -1.5 * -2.5 * ... * (-0.5 - k + 1)        k    x^(2*k+1)
- *           = Sum[k=0,inf]( ------------------------------------------- * (-1)^ * ----------- )         :integral constant C = 0
- *                                             fact(k)                                2*k+1
- *
- *                             0.5 * 1.5 * 2.5 * ... * -(-0.5 - k + 1)      x^(2*k+1)
- *           = Sum[k=0,inf]( ------------------------------------------- * ----------- )                 :(-1)^k * sign(numerator,k) == 1
- *                                             fact(k)                        2*k+1
- *
- *                            0.5 * 1.5 * 2.5 * ... * (k-1).5     x^(2*k+1)
- *           = Sum[k=0,inf]( --------------------------------- * ----------- )
- *                                       fact(k)                    2*k+1
- *
- *           = x + 0.5/3*x*x*x + 0.75/10*x*x*x*x*x + ...
+ * @derivative 
+ *   differentiate(asin,x) = 1/sqrt(1-x*x)
+ * 
+ * @integral
+ *   integate(asin(x), dx) = x*asin(x) + sqrt(1 - x*x) + constant
+ * 
+ * @alternative
+ *   asin(x) = -asin(-x)   :odd function
+ * 
+ *   asin(x) = ( pi/2 - asin(sqrt(1-x*x)) ) * sign(x)
+ * 
+ *   asin(x) = integrate<0,x>( 1/sqrt(1 - t*t), dt )   :integral form
+ * 
+ *   asin(x) = sum<k=0,inf>( fact2(2*k-1)/fact2(2*k) * pow(x,2*k+1)/(2*k+1) )  :maclaurin_series
 */
 template<typename Number>
 Number asin(const Number& x, const Number pi = static_cast<Number>(3.141592653589793)) {
-  assert( x >= -1 && x <= 1 );
-  if ( x > 0.707 ) {
-    // convergence slow
-    return pi/2 - asin(sqrt(1 - x*x));
-  } else 
-  if ( x < -0.707 ) {
-    // convergence slow
-    return asin(sqrt(1 - x*x)) - pi/2;
-  } else 
-  if ( x == 0 ) {
-    // special case
+/** inverse sine function details
+ * 
+ * @alternative for 'maclaurin_series'
+ *                                   1
+ *   asin(x) = integral<0,x>( ---------------, dt )                                                      :   f(x) = integral( df(x), dx )
+ *                             sqrt(1 - t*t)
+ *
+ *                                     -0.5
+ *           = integral<0,x>( (1 + -t*t)^  , dt )                                                        :1. expansion by 'binomial-series'
+ *
+ *                                           -0.5 * -1.5 * ... * (-0.5 - k + 1)        k
+ *           = integral<0,x>( sum<k=0,inf>( ------------------------------------*(-t*t)^ ), dt )
+ *                                                          k!
+ *
+ *                            -0.5 * -1.5 * ... * (-0.5 - k + 1)                         k
+ *           = sum<k=0,inf>( ------------------------------------ * integral<0,x>( (-t*t)^, dt ) )       :2. ... and simplify
+ *                                           k!
+ *
+ *                            -0.5 * -1.5 * ... * (-0.5 - k + 1)        k                   2*k
+ *           = sum<k=0,inf>( ------------------------------------ * (-1)^ * integral<0,x>( t^  , dt ) )  :   (-t*t)^k = (-1*t*t)^k
+ *                                           k!
+ *
+ *                            -0.5 * -1.5 * ... * (-0.5 - k + 1)        k    x^(2*k+1)
+ *           = sum<k=0,inf>( ------------------------------------ * (-1)^ * ----------- )
+ *                                           k!                                2*k+1
+ *
+ *                             0.5 * 1.5 * ... * abs(-0.5 - k + 1)     x^(2*k+1)
+ *           = sum<k=0,inf>( -------------------------------------- * ----------- )                      :   (-1)^k * sign(numerator,k) == 1
+ *                                           k!                          2*k+1
+ *
+ * @alternative for 'maclaurin_series' another form
+ * 
+ *                            1.0 * 3.0 * ... * 2*k-1       x^(2*k+1)
+ *           = sum<k=0,inf>( --------------------------- * ----------- )                                 :   numerator and denominator multiply by 2
+ *                                2 * 4 * ... * 2*k           2*k+1
+ *
+ *                            (2*k-1)!!     x^(2*k+1)
+ *           = sum<k=0,inf>( ----------- * ----------- )
+ *                             (2*k)!!        2*k+1
+*/
+  assert( abs(x) <= 1 );
+  if ( x < 0 ) {// convergence optimize
+    return -asin(abs(x));
+  } else if ( x == 0 ) {// not convergence
     return static_cast<Number>(0);
+  } else if ( x > 0.625 ) {// convergence slow, from Netlib or GCC
+    return pi/2 - asin( sqrt((1 - x)/2) )*2;
   }
 
+  assert( 0 < x && x <= 0.625 );
   // sum maclaurin_series
   const Number eps = static_cast<Number>(0.01);
   Number series = 0;
   const Number epsR = std::numeric_limits<Number>::epsilon();
   Number seriesR = 0;
 
-  const Number half = static_cast<Number>(0.5);
   const Number x_x = x * x;
   Number term = x;
-  Number n = 0;
+  Number k2 = 0;
   do {
     series += term;
     /**
-     *  nth[n+1]     0.5 * 1.5 * 2.5 * ... * n.5     x^(2*(n+1)+1)     0.5 * 1.5 * 2.5 * ... * (n-1).5     x^(2*n+1)
-     * ----------- = ----------------------------- * --------------- / --------------------------------- / -----------
-     *  nth[n]                 fact(n+1)               2*(n+1)+1                   fact(n)                   2*n+1
+     *  term[k+1]     1 * 3 * ... * (2*(k+1)-1)     x^(2*(k+1)+1)     1 * 3 * ... * (2*k-1)     x^(2*k+1)
+     * ----------- = --------------------------- * --------------- / ----------------------- / -----------
+     *  term[k]       2 * 4 * ... * (2*(k+1))         2*(k+1)+1       2 * 4 * ... * (2*k)         2*k+1
      *           
-     *                n.5     x^(2*n+3)     x^(2*n+1)
-     *             = ----- * ----------- / -----------
-     *                n+1       2*n+3         2*n+1
+     *                1 * 3 * ... * (2*k+1)     2 * 4 * ... * (2*k)       x^(2*k+3)     2*n+1
+     *             = ----------------------- * ----------------------- * ----------- * -------
+     *                1 * 3 * ... * (2*k-1)     2 * 4 * ... * (2*k+2)     x^(2*k+1)     2*n+3         
      *
-     *                n.5     x*x*(2*n+1)
-     *             = ----- * -------------
-     *                n+1       2*n+3
+     *                2*k+1           2*k+1
+     *             = ------- * x^2 * -------
+     *                2*k+2           2*k+3
     */
-    term *= (n+half)/(n+1) * x_x*(2*n+1)/(2*n+3);
-    n += 1;
-  } while ( abs(term) >= eps*abs(series) );
+    term *= (k2+1)/(k2+2) * (k2+1)/(k2+3) * x_x;
+    k2 += 2;
+  } while ( term >= eps*series );
   do {
     seriesR += term;
-    term *= (n+half)/(n+1) * x_x*(2*n+1)/(2*n+3);
-    n += 1;
-  } while ( abs(term) >= epsR*abs(seriesR) );
+    term *= (k2+1)/(k2+2) * (k2+1)/(k2+3) * x_x;
+    k2 += 2;
+  } while ( term >= epsR*seriesR );
 
   return series + seriesR;
 }
 
 /**
  * inverse cosine function:
- *   use Maclaurin series
-
+ *   use maclaurin_series
+ *
  * @param x 
  *   [-1, 1]
-
- * @param pi 
- *   constant
- * 
+ *
  * @return 
  *   [0, pi]
  * 
- * @formula
+ * @alternative
  *   acos(x) = pi/2 - asin(x)
 */
 template<typename Number>
@@ -1498,14 +1503,11 @@ Number acos(const Number& x, const Number pi = static_cast<Number>(3.14159265358
 */
 template<typename Number>
 Number atan(const Number& x) {
-  if ( x < 0 ) {
-    // optimize convergence, remove abs(...)
+  if ( x < 0 ) {// optimize convergence, remove abs(...)
     return -atan(abs(x));
-  } else if ( x > 0.35 ) {
-    // convergence slow
+  } else if ( x > 0.35 ) {// convergence slow
     return atan(x / (1 + sqrt(1 + x*x))) * 2;
-  } else if ( x == 0 ) {
-    // not convergence
+  } else if ( x == 0 ) {// not convergence
     return static_cast<Number>(0);
   }
 
@@ -1515,8 +1517,8 @@ Number atan(const Number& x) {
   Number series = 0;
   Number term = x/(1+x*x);
   Number k = 0;
-	do {
-		series += term;
+  do {
+    series += term;
     /**
      *	nth[k+1]     2^(2*(k+1)) * (k+1)! * (k+1)!       x^(2*(k+1) + 1)       2^(2*k) * k! * k!       x^(2*k + 1)
      * ----------- = ------------------------------- * --------------------- / ------------------- / -------------------
@@ -1534,11 +1536,11 @@ Number atan(const Number& x) {
      *             = ----------------- * -------
      *                (2*k+2)*(2*k+3)     1+x*x
     */
-		term *= ( 4*(k+1)*(k+1) / (2*k+2)/(2*k+3) * xx_div_1pxx );
-		k += 1;
-	} while ( term >= eps * series );
+    term *= ( 4*(k+1)*(k+1) / (2*k+2)/(2*k+3) * xx_div_1pxx );
+    k += 1;
+  } while ( term >= eps * series );
 		
-	return series;
+  return series;
 }
 
 /**

@@ -266,16 +266,16 @@ void floating_significand(
 {
   floating_operation_special_case(
     significand = zero_bitset;
-		return,
+    return,
     significand = nan_bitset;
-		return,
+    return,
     significand = nan_bitset;
-		return  
+    return  
     );
 
-	significand = floating & significand_mask;
-	significand |= exponent_bias_bitset;
-	significand |= possign_bitset;
+  significand = floating & significand_mask;
+  significand |= exponent_bias_bitset;
+  significand |= possign_bitset;
 }
 
 template<typename Bitset>
@@ -284,18 +284,18 @@ void floating_exponent(
   /*OUT*/ Bitset& exponent, 
   /*Reg1*/Bitset& exponent_part, 
   /*Reg2*/Bitset& sign_part,
-	const Bitset zero_bitset,
-	const Bitset inf_bitset,
-	const Bitset nan_bitset,
-	const Bitset significand_mask,
-	const Bitset exponent_mask, 
+  const Bitset zero_bitset,
+  const Bitset inf_bitset,
+  const Bitset nan_bitset,
+  const Bitset significand_mask,
+  const Bitset exponent_mask, 
   const Bitset sign_mask,
-	const Bitset exponent_bias_bitset, 
-	const size_t last_bit_offset,
-	const size_t hidden_significant_offset,
-	const size_t exponent_offset,
-	const Bitset possign_bitset,
-	const Bitset negsign_bitset)
+  const Bitset exponent_bias_bitset, 
+  const size_t last_bit_offset,
+  const size_t hidden_significant_offset,
+  const size_t exponent_offset,
+  const Bitset possign_bitset,
+  const Bitset negsign_bitset)
 {
   floating_operation_special_case(
     exponent = zero_bitset;
@@ -306,49 +306,49 @@ void floating_exponent(
     return  
     );
 
-	// get unnormalized-exponent and exponent-sign
-	exponent = floating & exponent_mask;
-	if ( exponent == exponent_bias_bitset ) {
+  // get unnormalized-exponent and exponent-sign
+  exponent = floating & exponent_mask;
+  if ( exponent == exponent_bias_bitset ) {
     exponent = zero_bitset;
     return;
-	} else if ( exponent > exponent_bias_bitset ) {
+  } else if ( exponent > exponent_bias_bitset ) {
     exponent -= exponent_bias_bitset;
     sign_part = possign_bitset;
-	} else   /* exponent < exponent_bias_bitset */{
+  } else   /* exponent < exponent_bias_bitset */{
     exponent = exponent_bias_bitset - exponent;
     sign_part = negsign_bitset;
-	}
+  }
 				
-	// normalize select shift
-	size_t smaller_shift = 0;
-	while ( !exponent.test(last_bit_offset - smaller_shift) ) {
-		++smaller_shift;
-	}
-	smaller_shift = last_bit_offset - hidden_significant_offset - smaller_shift;
-	// normalize significand
-	exponent >>= smaller_shift;
-	exponent &= significand_mask;
-	// normalize exponent
-	exponent_part = smaller_shift;
-	exponent_part <<= exponent_offset;
-	exponent_part += exponent_bias_bitset;
+  // normalize select shift
+  size_t smaller_shift = 0;
+  while ( !exponent.test(last_bit_offset - smaller_shift) ) {
+    ++smaller_shift;
+  }
+  smaller_shift = last_bit_offset - hidden_significant_offset - smaller_shift;
+  // normalize significand
+  exponent >>= smaller_shift;
+  exponent &= significand_mask;
+  // normalize exponent
+  exponent_part = smaller_shift;
+  exponent_part <<= exponent_offset;
+  exponent_part += exponent_bias_bitset;
 
-	// combine
-	exponent |= exponent_part;
-	exponent |= sign_part;
+  // combine
+  exponent |= exponent_part;
+  exponent |= sign_part;
 }
 		
 template<typename Bitset>
 void floating_sign(
   const Bitset& floating, 
         Bitset& sign,
-	const Bitset zero_bitset,
-	const Bitset exponent_bias_bitset,
-	const Bitset sign_mask)
+  const Bitset zero_bitset,
+  const Bitset exponent_bias_bitset,
+  const Bitset sign_mask)
 {
-	sign = zero_bitset;
-	sign |= exponent_bias_bitset;
-	sign |= (floating & sign_mask);
+  sign = zero_bitset;
+  sign |= exponent_bias_bitset;
+  sign |= (floating & sign_mask);
 }
 
 
@@ -954,11 +954,11 @@ public:
   }
 
   static std::bitset<bits> epsilon_bitset() {
-		// epsilon = exp2(0 - mantissa_bits) 
-		static auto _Epsilon = 
+    // epsilon = exp2(0 - mantissa_bits) 
+    static auto _Epsilon = 
       exponent_bias_bitset() - (std::bitset<bits>(significand_bits) << exponent_offset);
-		return _Epsilon;
-	}
+    return _Epsilon;
+  }
 
   static std::bitset<bits> possign_bitset() {
     return zero_bitset();
@@ -1001,7 +1001,7 @@ public:
       small first, next storage
     } else {
       storage first, next large
-	}
+    }
   }}*/
   template<size_t m2, size_t e2> explicit
   floatX(const floatX<m2, e2>& other) {
@@ -1066,11 +1066,11 @@ public:
         std::bitset<other_bits> shifted_exponent = other_abs_exponent >> (other_float::exponent_offset - exponent_offset);
         std::bitset<bits> casted_shifted_exponent = std::bitset_cast<bits>(shifted_exponent);
         _My_exponent = casted_shifted_exponent;
-	    } else if constexpr ( other_float::exponent_offset < exponent_offset ) {
+      } else if constexpr ( other_float::exponent_offset < exponent_offset ) {
         std::bitset<bits> casted_exponent = std::bitset_cast<bits>( other_abs_exponent );
         std::bitset<bits> shifted_casted_exponent = casted_exponent << (exponent_offset - other_float::exponent_offset);
         _My_exponent = shifted_casted_exponent;
-	    } else {
+      } else {
         _My_exponent = std::bitset_cast<bits>( other_abs_exponent );
       }
 
@@ -1565,37 +1565,37 @@ public:
   static constexpr size_t exponent_offset = significand_offset + significand_bits;
   static constexpr size_t sign_offset = exponent_offset + exponent_bits;
 
-	static constexpr std::bitset<bits> significand_mask() {
-		return std::bitset<bits>(0b00000000011111111111111111111111);
-	}
-	static constexpr std::bitset<bits> exponent_mask() {
-		return std::bitset<bits>(0b01111111100000000000000000000000);
-	}
-	static constexpr std::bitset<bits> sign_mask() {
-		return std::bitset<bits>(0b10000000000000000000000000000000);
-	}
-	static constexpr std::bitset<bits> hidden_significand_mask() {
-		return std::bitset<bits>(0b00000000100000000000000000000000);
-	}
+  static constexpr std::bitset<bits> significand_mask() {
+    return std::bitset<bits>(0b00000000011111111111111111111111);
+  }
+  static constexpr std::bitset<bits> exponent_mask() {
+    return std::bitset<bits>(0b01111111100000000000000000000000);
+  }
+  static constexpr std::bitset<bits> sign_mask() {
+    return std::bitset<bits>(0b10000000000000000000000000000000);
+  }
+  static constexpr std::bitset<bits> hidden_significand_mask() {
+    return std::bitset<bits>(0b00000000100000000000000000000000);
+  }
 		
-	static constexpr std::bitset<bits> exponent_bias_bitset() {
-		return std::bitset<bits>(0b00111111100000000000000000000000);
-	}
-	static constexpr std::bitset<bits> zero_bitset() {
-		return std::bitset<bits>(0b00000000000000000000000000000000);
-	}
-	static constexpr std::bitset<bits> inf_bitset() {
-		return exponent_mask();
-	}
-	static constexpr std::bitset<bits> quiet_NaN_bitset() {
-		return std::bitset<bits>(0b01111111110000000000000000000000);
-	}
-	static constexpr std::bitset<bits> signaling_NaN_bitset() {
+  static constexpr std::bitset<bits> exponent_bias_bitset() {
+    return std::bitset<bits>(0b00111111100000000000000000000000);
+  }
+  static constexpr std::bitset<bits> zero_bitset() {
+    return std::bitset<bits>(0b00000000000000000000000000000000);
+  }
+  static constexpr std::bitset<bits> inf_bitset() {
+    return exponent_mask();
+  }
+  static constexpr std::bitset<bits> quiet_NaN_bitset() {
+    return std::bitset<bits>(0b01111111110000000000000000000000);
+  }
+  static constexpr std::bitset<bits> signaling_NaN_bitset() {
     return std::bitset<bits>(0b01111111110000000000000000000001);
-	}
-	static constexpr std::bitset<bits> epsilon_bitset() {
+  }
+  static constexpr std::bitset<bits> epsilon_bitset() {
     return std::bitset<bits>(0b00110100000000000000000000000000);
-	}
+  }
 
 public:
 	float _Myfp;
