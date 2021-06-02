@@ -524,6 +524,8 @@ Number pow(const Number& x, int power) {
   return series;
 }
 
+
+
 /**
  * @brief 
  *   square root
@@ -987,7 +989,7 @@ Number acosh(const Number& x) {
  *   pi: ratio of the circumference of a circle to its diameter
  * 
  * @Bailey-Borwein-Plouffe formula for 'pi'
- *   derivation part ...
+ *   part of derivation  ...
  *                        1          4           2           1           1
  *   pi = sum<k=0,inf>( ------*( --------- - --------- - --------- - --------- ) )
  *                       16^k     8*k + 1     8*k + 4     8*k + 5     8*k + 6
@@ -999,141 +1001,292 @@ Number calculate_pi() {
   Number seriesR = 0;
   const Number epsR = std::numeric_limits<Number>::epsilon();
 
-  size_t k = 0;
   Number k8 = 0;
-  Number a = 1;
-  Number term = a * (4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6));
+  Number hex_base = 1;
+  Number term = hex_base * (4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6));
   do {
-    ++k;
     series += term;
-    a /= 16;
-    k8 += 8;
-    term = a * (4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6));
+    hex_base /= 16; k8 += 8;
+    term = hex_base * (4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6));
   } while ( abs(term) >= eps * abs(series) );
   do {
-    ++k;
-    seriesR += term;;
-    a /= 16;
-    k8 += 8;
-    term = a * (4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6));
+    seriesR += term;
+    hex_base /= 16; k8 += 8;
+    term = hex_base * (4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6));
   } while ( abs(term) >= epsR * abs(seriesR) );
 
   return series + seriesR;
 }
 
-template<typename Number, typename Rational>
-Number fmod_pi(const Number& x, const Rational pi_scale, const Number pi = static_cast<Number>(3.141592653589793)) {
-  /** 
-   * @the problem
-   *  pi's precision is finite, for example 16digit,
-   *  so, arithmetic only decrease precision, then less equal than 16digit,
-   *  decrease precision at binary 'substraction' with two almost equal numbers, final less than 16digit.
-   * 
-   * @variables
-   *   input number is finite precision, this is correct,
-   *   but pi should infinite precision.
-   * 
-   * @solusion
-   *   we replace 'pi' by Bailey-Borwein-Plouffe-series, 
-   *   but still accuracy not change or more bad.
-   * 
-   *   @analysis
-   *     x - trunc(x/pi)*pi = y, x = 10000
-   * 
-   *       10000.0                 :16 precision
-   *     -  9973.399999999999'8939 :16 precision, 3183 * 3.1333333333333333 = 9973.4
-   *     =    26.600000000000'364  :14 precision, see the problem line3
-   * 
-   *       26.600000000000'36 4     :14 precision
-   *     - 25.747710622710 62'51517 :16 precision, 3183 * 0.0080891330891330899 = 25.747710622710622710622710622711
-   *     =  0.852289377289'73 975   :12 precision, see the problem line3
-   * 
-   *       0.852289377289'7397 5    :12 precision
-   *     - 0.524952850458 3650'8248 :16 precision, 3183 * 0.00016492392411510056 = ...
-   *     = 0.327336526831'3747 1    :12 precision
-   * 
-   *     ......
-   *     ...
-   * 
-   *     'first few' terms in series of 'pi', that decrease precision, 
-   *     because this target is 'modulo', no matter how large number, that must substracted by 'almost equal' numbers in process,
-   *     'after' terms are steady...
-   *     
-   *  @improvement
-   *    arithmetic for 'first few' terms, we use 'rational number' calculate, since 'pi' is natural.
-   *    the first, we split 'x' to integer part and fraction part.
-   * 
-   *    x = i + f
-   *    n = trunc(x / pi)
-   *    y = x - pi*n
-   *
-   *    y/n = x/n - pi
-   *    y/n = (i + f)/n - pi
-   *    y/n = i/n + f/n - pi
-   *    y/n = (i/n - pi) + f/n
-   *    y = (i/n - pi)*n + f
-   * 
-   *    we get almost all precision, input x less than 1000000.0 .
-   *    !Notice: except when 'y' near to 0 !!!!!!!!!!!!!!!!!!!!!!!!!
+/** 
+ * @return pi.hex_significant[digit+1, ...) 
+*/
+template<typename Number>
+Number calculate_pi(int digit/* = std::numeric_limit<Number>::digit/4 - 1 */, Number multiplier = 1) {
+  Number series = 0;
+	Number k = 0;
+	Number hex_base = pow(Number(16), digit);
+	for ( ; k <= digit; k+=1) {
+		series += 4*fmod(hex_base, 8*k+1)/(8*k + 1);
+		series -= 2*fmod(hex_base, 8*k+4)/(8*k + 4);
+		series -= fmod(hex_base, 8*k+5)/(8*k + 5);
+		series -= fmod(hex_base, 8*k+6)/(8*k + 6);
+		hex_base /= 16;
+	}
+		
+	const Number eps = std::numeric_limits<Number>::epsilon();
+	for( ; true; k+=1) {
+		Number term = hex_base*(4/(8*k+1) - 2/(8*k+4) - 1/(8*k+5) - 1/(8*k+6));
+		if( abs(term) < eps * abs(series) ) {
+			break;
+		}
+		series += term;
+		hex_base /= 16;
+	}
+	
+	return series < 0 
+    ? 1-abs(frac(series*multiplier))
+    : frac(series*multiplier);
+  /** you need 
+  * trunc(calculate_pi(digit) * pow(16.0,digit)) * pow(16.0,-digit-digit)
+  * @see circular_constant::operator-
   */
-
-  long long n = static_cast<long long>( trunc(x / (pi*static_cast<Number>(pi_scale))) );
-  if ( n == 0 ) {
-    return x;
-  }
-  if ( abs( frac(x / (pi*static_cast<Number>(pi_scale)))) < std::numeric_limits<Number>::epsilon() ) {
-    return 0;
-  }
-  
-  Rational xi = Rational(static_cast<long long>(trunc(x)), n);
-  int k8i = 0;
-  long long exp16_ki = 1;
-  try {
-    do {
-      xi = xi - Rational(4,k8i+1)/exp16_ki*pi_scale
-        + Rational(2,k8i+4)/exp16_ki*pi_scale
-        + Rational(1,k8i+5)/exp16_ki*pi_scale
-        + Rational(1,k8i+6)/exp16_ki*pi_scale;
-      if ( exp16_ki > std::numeric_limits<long long>::max() / 16 ) {
-        break;
-      }
-      k8i += 8;
-      exp16_ki *= 16;
-    } while ( true );
-  }
-  catch (const std::underflow_error&) {
-    // ...
-  }
-  catch (const std::overflow_error&) {
-    // ...
-  }
-
-  const Number eps = std::numeric_limits<Number>::epsilon();
-  Number yi = static_cast<Number>(xi);
-  Number k8 = static_cast<Number>(k8i);
-  Number exp16_k = static_cast<Number>(exp16_ki);
-  Number term = ( 4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6) ) / exp16_k;
-  do {
-    yi -= term*static_cast<Number>(pi_scale);
-    k8 += 8;
-    exp16_k *= 16;
-    term = ( 4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6) ) / exp16_k;
-  } while ( abs(term) >= eps * abs(yi) );
-
-  return yi*n + frac(x);
 }
 
+/**
+ * @brief circular_constant = pi * multiplier + addend
+*/
+template<typename Number = double>
+struct circular_constant {
+  Number approximation;
+  Number remainder1;
+  Number remainder2;
+  Number multiplier;
+  Number addend;
+  Number new_multiplier;
+
+  circular_constant() {
+    int digit = std::numeric_limits<Number>::digits / 4 - 1;
+    approximation = trunc(calculate_pi<Number>() * pow(Number(16),digit)) * pow(Number(16),-digit);
+    remainder1 = trunc(calculate_pi<Number>(digit) * pow(Number(16),digit)) * pow(Number(16),-digit-digit);
+    remainder2 = trunc(calculate_pi<Number>(digit+digit) * pow(Number(16),digit)) * pow(Number(16),-digit-digit-digit);
+    multiplier = static_cast<Number>(1);
+    addend     = static_cast<Number>(0);
+    new_multiplier = multiplier;
+  }
+
+  circular_constant(Number _Approx, Number _Rem1, Number _Rem2, Number _Mulp, Number _Adde, Number _Mulp_new)
+    : approximation(_Approx), remainder1(_Rem1), remainder2(_Rem2), multiplier(_Mulp), addend(_Adde), new_multiplier(_Mulp_new) {}
+
+  void calculate() {
+    if ( new_multiplier != multiplier ) {
+      Number scale = new_multiplier / multiplier;
+      if ( scale == -1 || scale == 4 || scale == 2 || scale == 1 || scale == 0.5 || scale == 0.25 || scale == 0.125 ) {
+        // significand not change
+        approximation *= scale;
+        remainder1 *= scale;
+        remainder2 *= scale;
+      } else {
+        int digit = std::numeric_limits<Number>::digits / 4 - 1;
+        approximation = trunc(calculate_pi<Number>() * new_multiplier * pow(Number(16),digit)) * pow(Number(16),-digit);
+        remainder1 = trunc(calculate_pi<Number>(digit, new_multiplier) * pow(Number(16),digit)) * pow(Number(16),-digit-digit);
+        remainder2 = trunc(calculate_pi<Number>(digit+digit, new_multiplier) * pow(Number(16),digit)) * pow(Number(16),-digit-digit-digit);
+      }
+      multiplier = new_multiplier;
+    }
+  }
+
+  bool calculated() const {
+    return new_multiplier == multiplier;
+  }
+
+  circular_constant operator-() const {
+    // - (pi*multiplier + addend) = pi*(-multiplier) + (-addend)
+    return circular_constant(approximation, remainder1, remainder2, multiplier, 
+      -addend, -new_multiplier);
+  }
+
+  circular_constant operator+(const Number& right) const {
+    return circular_constant(approximation, remainder1, remainder2, multiplier,
+      addend + right, new_multiplier);
+  }
+
+  circular_constant operator-(const Number& right) const {
+    return circular_constant(approximation, remainder1, remainder2, multiplier,
+      addend - right, new_multiplier);
+  }
+
+  circular_constant operator*(const Number& right) const {
+    return circular_constant(approximation, remainder1, remainder2, multiplier,
+      addend, new_multiplier*right);
+  }
+
+  circular_constant operator/(const Number& right) const {
+    return circular_constant(approximation, remainder1, remainder2, multiplier,
+      addend, new_multiplier/right);
+  }
+
+  Number operator%(const Number& right) const {
+    const Number piA = approximation * multiplier;
+    const Number piR1 = remainder1 * multiplier;
+    const Number piR2 = remainder2 * multiplier;
+
+    Number result = piA - trunc(piA/right) * right;
+    result = result + piR1;
+    if ( result > right ) {
+      result = result - trunc(result/right) * right;
+      assert( right >= std::numeric_limits<Number>::epsilon() );
+      // .... while(..){ ... } for infinite small 'right'...
+    }
+    return result += piR2;
+  }
+  
+  circular_constant operator+(const circular_constant& right) const {
+    // pi * multiplier + addend  +  pi*r_multiplier + r_addend
+    // pi * (multiplier + r_multiplier) + (addend + r_addend)
+    return circular_constant(approximation, remainder1, remainder2, multiplier,
+      this->addend + right.addend, this->new_multiplier + right.new_multiplier);
+  }
+
+  circular_constant operator-(const circular_constant& right) const {
+    // pi * multiplier + addend  -  pi*r_multiplier - r_addend
+    // pi * (multiplier - r_multiplier) + (addend - r_addend)
+    return circular_constant(approximation, remainder1, remainder2, multiplier,
+      this->addend - right.addend, this->new_multiplier - right.new_multiplier);
+  }
+
+  bool operator==(const Number& right) const {
+    if ( !calculated() ) {
+      calculate();
+    }
+    return abs((addend + approximation+remainder1) - right)
+      < std::numeric_limits<Number>::epsilon();
+  }
+
+  bool operator!=(const Number& right) const {
+    return !(*this == right);
+  }
+
+  bool operator>(const Number& right) const {
+    if ( calculated() ) {
+      return (addend + approximation+remainder1) > right;
+    } else {
+      auto correct = circular_constant(*this);
+      correct.calculate();
+      return correct > right;
+    }
+  }
+
+  bool operator<(const Number& right) const {
+    if ( calculated() ) {
+      return (addend + approximation+remainder1) < right;
+    } else {
+      auto correct = circular_constant(*this);
+      correct.calculate();
+      return correct < right;
+    }
+  }
+
+  bool operator>=(const Number& right) const {
+    return !((*this) < right);
+  }
+
+  bool operator<=(const Number& right) const {
+    return !((*this) > right);
+  }
+
+  friend circular_constant operator+(const Number& left, const circular_constant& pi) {
+    return pi + left;
+  }
+
+  friend circular_constant operator-(const Number& left, const circular_constant& pi) {
+    return -(pi - left);
+  }
+
+  friend circular_constant operator*(const Number& left, const circular_constant& pi) {
+    return pi * left;
+  }
+
+  friend Number operator/(const Number& left, const circular_constant& pi) {
+    if ( pi.calculated() ) {
+      return left / (pi.addend + pi.approximation+pi.remainder1);
+    } else {
+      auto correct = circular_constant(pi);
+      correct.calculate();
+      return left / correct;
+    }
+  }
+
+  friend circular_constant operator%(const Number& left, const circular_constant& pi) {
+    /*const Number piA = pi.approximation * pi.scale;
+    const Number piR1 = pi.remainder1 * pi.scale;
+    const Number piR2 = pi.remainder2 * pi.scale;
+    Number result = (left/piA - trunc(left/piA))*piA;
+    result += piR1 + piR2;
+    return result < piA ? result : result - pi;*/
+    return left - trunc(left/pi)*pi;
+  }
+  
+  friend bool operator==(const Number& left, const circular_constant& pi) {
+    return pi == left;
+  }
+
+  friend bool operator!=(const Number& left, const circular_constant& pi) {
+    return pi != left;
+  }
+
+  friend bool operator<(const Number& left, const circular_constant& pi) {
+    return pi > left;
+  }
+
+  friend bool operator>(const Number& left, const circular_constant& pi) {
+    return pi < left;
+  }
+
+  friend bool operator<=(const Number& left, const circular_constant& pi) {
+    return pi >= left;
+  }
+
+  friend bool operator>=(const Number& left, const circular_constant& pi) {
+    return pi <= left;
+  }
+
+  circular_constant operator*(int times) const {
+    return (*this) * static_cast<Number>(times);
+  }
+
+  circular_constant operator/(int times) const {
+    return (*this) / static_cast<Number>(times);
+  }
+
+  operator Number() const {
+    if ( calculated() ) {
+      return addend + approximation + remainder1;
+    } else {
+      Number scale = new_multiplier / multiplier;
+      if ( scale == -1 || scale == 4 || scale == 2 || scale == 1 || scale == 0.5 || scale == 0.25 || scale == 0.125 ) {
+        // significand not change
+        return addend + approximation*scale + remainder1*scale;
+      } else {
+        int digit = std::numeric_limits<Number>::digits / 4 - 1;
+        Number the_approximation = trunc(calculate_pi<Number>() * new_multiplier * pow(Number(16),digit)) * pow(Number(16),-digit);
+        Number the_remainder1 = trunc(calculate_pi<Number>(digit, new_multiplier) * pow(Number(16),digit)) * pow(Number(16),-digit-digit);
+        return addend + the_approximation+the_remainder1;
+      }
+    }
+  }
+};
+
+
 template<typename Number>
-Number cos(const Number& x, const Number pi);
+Number cos(const Number& x, const circular_constant<Number>& pi);
 
 /**
  * sine function:
  *   use maclaurin_series
  * 
  * @param x
- *   [-pi*2, pi*2], 
- *   inaccurate in (-inf, inf) because substraction in fmod(x, pi/2), 
- *   inaccurate at slightly great than pi/2 because ... in fmod(x, pi/2).
+ *   [-pi*2, pi*2]
  * 
  * @return 
  *   [0, 1]
@@ -1164,7 +1317,7 @@ Number cos(const Number& x, const Number pi);
  *   sin(x) = sum<k=0,inf>( pow(-1,k)/fact(2*k+1) * pow(x,2*k+1) )   :maclaurin_series, only odd term, odd is 2*k+1
 */
 template<typename Number>
-Number sin(const Number& x, const Number pi = static_cast<Number>(3.141592653589793)) {
+Number sin(const Number& x, const circular_constant<Number>& pi = circular_constant<Number>()) {
   if ( x < 0 ) {
     //  convergence optimize, sin(x) = -sin(-x)
     return -sin(abs(x), pi);
@@ -1173,25 +1326,31 @@ Number sin(const Number& x, const Number pi = static_cast<Number>(3.141592653589
     return static_cast<Number>(0);
   } else if ( x > pi/2 ) {
     // convergence optimize
-    const Number pio2 = pi / 2;
-#if defined __has_include && __has_include("rational.h")
-    Number y = fmod_pi(x, rational64_t(1,2), pi);
-#else 
-    Number y = fmod(x, pio2);
-#endif
-    switch ( static_cast<int>(trunc(x/pio2)) % 4 ) {
-      case 0: return sin(y, pi);// 0->1
-      case 1: return cos(y, pi);// 1->0
-      case 2: return -sin(y, pi);// 0->-1
-      case 3: return -cos(y, pi);// -1->0
+    int n = static_cast<int>(trunc(x / (pi/2)));
+    auto xn = x % (pi/2);
+    switch ( n % 4 ) {
+      case 0: // 0 -> 1
+        return sin(static_cast<Number>(xn), pi);
+      case 1: // 1 -> 0
+        if ( abs(Number(xn)) - pi/2 < 0.1 ) {
+          return sin(static_cast<Number>(pi/2 - xn), pi);
+        }
+        return cos(static_cast<Number>(xn), pi);
+      case 2: // 0 -> -1
+        return -sin(static_cast<Number>(xn), pi);
+      case 3: // -1 -> 0
+        if ( abs(Number(xn)) - pi/2 < 0.1 ) {
+          return -sin(static_cast<Number>(pi/2 - xn), pi);
+        }
+        return -cos(static_cast<Number>(xn), pi);
     }
   }
 
-  assert( abs(x) <= pi/2 );
+  assert( x != 0 );
   // sum maclaurin_series
-  const Number eps = std::numeric_limits<Number>::epsilon();
+  const Number eps = static_cast<Number>(0.01);
   Number series = 0;
-  const Number epsR = static_cast<Number>(0.01);
+  const Number epsR = std::numeric_limits<Number>::epsilon();
   Number seriesR = 0;
 
   const Number neg_x_x = -(x*x);
@@ -1228,9 +1387,7 @@ Number sin(const Number& x, const Number pi = static_cast<Number>(3.141592653589
  *   use maclaurin_series
  * 
  * @param x 
- *   [-pi*2, pi*2], 
- *   inaccurate in (-inf, inf) because substraction in fmod(x, pi/2), 
- *   inaccurate at slightly great than pi/2 because ... in fmod(x, pi/2).
+ *   [-pi*2, pi*2]
  * 
  * @return 
  *   [0, 1]
@@ -1246,7 +1403,7 @@ Number sin(const Number& x, const Number pi = static_cast<Number>(3.141592653589
  * 
  *   cos(x) = cos(x + pi*2 * n)   :period function
  * 
- *   cos(2*x) = cos(x)*cos(x) - sin(x)*sin(x)   :double angle law
+ *   cos(x*2) = cos(x)*cos(x) - sin(x)*sin(x)   :double angle law
  * 
  *   cos(x/2) = sqrt((1 + cos(x))/2)            :half angle law
  * 
@@ -1256,25 +1413,31 @@ Number sin(const Number& x, const Number pi = static_cast<Number>(3.141592653589
  * 
  *   cos(a) + cos(b) = 2 * cos((a+b)/2) * cos((a-b)/2)  :sum to product law
  * 
- *   cos(a) * cos(b) = 1/2 * ( cos(a-b) * cos(a+b) )    :product to sum law
+ *   cos(a) * cos(b) = 1/2 * ( cos(a-b) + cos(a+b) )    :product to sum law
  * 
  *   cos(x) = sum<k=0,inf>( pow(-1,k)/fact(2*k) * pow(x,2*k) )   :maclaurin_series, only even term, even is 2*k
 */
 template<typename Number>
-Number cos(const Number& x, const Number pi = static_cast<Number>(3.141592653589793)) {
+Number cos(const Number& x, const circular_constant<Number>& pi = circular_constant<Number>()) {
   if ( abs(x) > pi/2 ) {
     // convergence optimize
-    const Number pio2 = pi / 2;
-#if defined __has_include && __has_include("rational.h")
-    Number y = fmod_pi(x, rational64_t(1,2), pi);
-#else 
-    Number y = fmod(x, pio2);
-#endif
-    switch (static_cast<int>(trunc(x/pio2)) % 4) {
-      case 0: return cos(y,pi);// 1->0
-      case 1: return -sin(y,pi);// 0->-1
-      case 2: return -cos(y,pi);// -1->0
-      case 3: return  sin(y,pi);// 0->1
+    int n = static_cast<int>(trunc(x / (pi/2)));
+    auto xn = x % (pi/2);
+    switch ( n % 4 ) {
+      case 0: // 1 -> 0
+        if ( abs(Number(xn)) - pi/2 < 0.1 ) {
+          return sin(static_cast<Number>(pi/2 - xn), pi);
+        }
+        return cos(static_cast<Number>(xn), pi);
+      case 1: // 0 -> -1
+        return -sin(static_cast<Number>(xn), pi);
+      case 2: // -1 -> 0
+        if ( abs(Number(xn)) - pi/2 < 0.1 ) {
+          return -sin(static_cast<Number>(pi/2 - xn), pi);
+        }
+        return -cos(static_cast<Number>(xn), pi);
+      case 3: // 0 -> 1
+        return  sin(static_cast<Number>(xn), pi);
     }
   } else
   if ( x == 0 ) {
@@ -1282,11 +1445,11 @@ Number cos(const Number& x, const Number pi = static_cast<Number>(3.141592653589
     return static_cast<Number>(1);
   }
 
-  assert( abs(x) <= pi/2 );
+  assert( x != 0 );
   // sum maclaurin_series
-  const Number eps = std::numeric_limits<Number>::epsilon();
+  const Number eps = static_cast<Number>(0.01);
   Number series = 0;
-  const Number epsR = static_cast<Number>(0.01);
+  const Number epsR = std::numeric_limits<Number>::epsilon();
   Number seriesR = 0;
 
   const Number neg_x_x = -(x*x);
