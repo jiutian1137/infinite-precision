@@ -524,8 +524,6 @@ Number pow(const Number& x, int power) {
   return series;
 }
 
-
-
 /**
  * @brief 
  *   square root
@@ -573,8 +571,7 @@ Number sqrt(const Number& x) {
 */
 template<typename Number>
 Number cbrt(const Number& x) {
-  if (x == 0) {
-    // not convergence
+  if ( x == 0 ) {// not convergence
     return static_cast<Number>(0);
   }
 
@@ -636,39 +633,6 @@ Number cbrt(const Number& x) {
 */
 template<typename Number>
 Number exp(const Number& x) {
-  if ( x < 0 ) {// convergence slow, odd terms are negative, even terms are positive 
-    return 1 / exp(abs(x));
-  } else if ( x > 1 ) {// convergence slow, see @alternative for 'maclaurin_series'
-    Number xi = floor(x);
-    return exp(x - xi) * pow(exp(static_cast<Number>(1)), static_cast<int>(xi));
-  } else if ( x == 0 ) {// seriesR not convergence
-    return static_cast<Number>(1);
-  }
-
-  assert( 0 < x && x <= 1 );
-  // sum maclaurin_series
-  Number series = 0;
-  const Number eps = static_cast<Number>(0.01);
-  Number seriesR = 0;
-  const Number epsR = std::numeric_limits<Number>::epsilon();
-  
-  Number n = 0;
-  Number term = 1;
-  do {
-    series += term;
-    /**
-     *  nth[n+1]      pow(x,n+1)     pow(x,n)      x
-     * ----------- = ------------ / ---------- = -----
-     *  nth[n]        fact(n+1)      fact(n)      n+1
-    */
-    term *= ( x/(n += 1) );
-  } while ( term >= eps*series );
-  do {
-    seriesR += term;
-    term *= ( x/(n += 1) );
-  } while ( term >= epsR*seriesR );
-
-  return series + seriesR;
 /** exponential function details
  * 
  * @alternative for 'limit'
@@ -689,6 +653,38 @@ Number exp(const Number& x) {
  *    = sum<k=0,inf>( ----- * x^ )
  *                      k!
 */
+  if ( x < 0 ) {// convergence slow, odd terms are negative, even terms are positive 
+    return 1 / exp(abs(x));
+  } else if ( x > 1 ) {// convergence slow, see @alternative for 'maclaurin_series'
+    Number xi = floor(x);
+    return exp(x - xi) * pow(exp(static_cast<Number>(1)), static_cast<int>(xi));
+  } else if ( x == 0 ) {// seriesR not convergence
+    return static_cast<Number>(1);
+  }
+
+  assert( 0 < x && x <= 1 );
+  Number series = 0;
+  const Number eps = static_cast<Number>(0.01);
+  Number seriesR = 0;
+  const Number epsR = std::numeric_limits<Number>::epsilon();
+  
+  Number n = 0;
+  Number term = 1;
+  do {
+    series += term;
+    /**
+     *  term[n+1]     pow(x,n+1)     pow(x,n)      x
+     * ----------- = ------------ / ---------- = -----
+     *  term[n]       fact(n+1)      fact(n)      n+1
+    */
+    term *= ( x/(n += 1) );
+  } while ( term >= eps*series );
+  do {
+    seriesR += term;
+    term *= ( x/(n += 1) );
+  } while ( term >= epsR*seriesR );
+
+  return series + seriesR;
 }
 
 /**
@@ -718,46 +714,6 @@ Number exp(const Number& x) {
 */
 template<typename Number>
 Number atanh(const Number& x) {
-  assert( -1 < x && x < 1 );
-  if ( x < 0 ) {// symmetry around X-axis
-    return -atanh(x);
-  } else if ( x == 0 ) {// not convergence
-    return static_cast<Number>(0);
-  }
-
-  assert( 0 <= x && x < 1 );
-  // sum maclaurin_series
-  Number series = 0;
-  const Number eps = static_cast<Number>(0.01);
-  Number seriesR = 0;
-  const Number epsR = std::numeric_limits<Number>::epsilon();
-
-  const Number x_x = x * x;
-  Number term = x;
-  Number k = 0;
-  do {
-    series += term;
-    /** 
-     *  term[k+1]     x^(2*(k+1)+1)     x^(2*k+1)
-     * ----------- = --------------- / -----------
-     *  term[k]         2*(k+1)+1         2*k+1
-     * 
-     *                x^(2*k+3)     2*k+1
-     *             = ----------- * -------
-     *                x^(2*k+1)     2*k+3
-     * 
-     *             = x*x * (2*k+1)/(2*k+3)
-    */
-    term *= x_x * (2*k+1)/(2*k+3);
-    k += 1;
-  } while ( term >= eps*series );
-  do {
-    seriesR += term;
-    term *= x_x * (2*k+1)/(2*k+3);
-    k += 1;
-  } while ( term >= epsR*seriesR );
-
-  return series + seriesR;
 /** inverse hyperbolic tangent details
  * 
  * @addition formula
@@ -833,6 +789,46 @@ Number atanh(const Number& x) {
  *   "https://mathworld.wolfram.com/InverseHyperbolicTangent.html"
  *   "https://en.wikipedia.org/wiki/Inverse_hyperbolic_functions"
 */
+  assert( -1 < x && x < 1 );
+  if ( x < 0 ) {// symmetry around X-axis
+    return -atanh(x);
+  } else if ( x == 0 ) {// not convergence
+    return static_cast<Number>(0);
+  }
+
+  assert( 0 <= x && x < 1 );
+  // sum maclaurin_series
+  Number series = 0;
+  const Number eps = static_cast<Number>(0.01);
+  Number seriesR = 0;
+  const Number epsR = std::numeric_limits<Number>::epsilon();
+
+  const Number x_x = x * x;
+  Number term = x;
+  Number k = 0;
+  do {
+    series += term;
+    /** 
+     *  term[k+1]     x^(2*(k+1)+1)     x^(2*k+1)
+     * ----------- = --------------- / -----------
+     *  term[k]         2*(k+1)+1         2*k+1
+     * 
+     *                x^(2*k+3)     2*k+1
+     *             = ----------- * -------
+     *                x^(2*k+1)     2*k+3
+     * 
+     *             = x*x * (2*k+1)/(2*k+3)
+    */
+    term *= x_x * (2*k+1)/(2*k+3);
+    k += 1;
+  } while ( term >= eps*series );
+  do {
+    seriesR += term;
+    term *= x_x * (2*k+1)/(2*k+3);
+    k += 1;
+  } while ( term >= epsR*seriesR );
+
+  return series + seriesR;
 }
 
 /**
@@ -1001,8 +997,8 @@ Number calculate_pi() {
   Number seriesR = 0;
   const Number epsR = std::numeric_limits<Number>::epsilon();
 
-  Number k8 = 0;
   Number hex_base = 1;
+  Number k8 = 0;
   Number term = hex_base * (4/(k8 + 1) - 2/(k8 + 4) - 1/(k8 + 5) - 1/(k8 + 6));
   do {
     series += term;
@@ -1019,34 +1015,76 @@ Number calculate_pi() {
 }
 
 /** 
+ * @param digit std::numeric_limit<Number>::digit/4 - 1
  * @return pi.hex_significant[digit+1, ...) 
 */
 template<typename Number>
-Number calculate_pi(int digit/* = std::numeric_limit<Number>::digit/4 - 1 */, Number multiplier = 1) {
+Number calculate_pi(int digit, Number multiplier = 1) {
+  assert( multiplier >= 0 );
   Number series = 0;
-	Number k = 0;
-	Number hex_base = pow(Number(16), digit);
-	for ( ; k <= digit; k+=1) {
-		series += 4*fmod(hex_base, 8*k+1)/(8*k + 1);
-		series -= 2*fmod(hex_base, 8*k+4)/(8*k + 4);
-		series -= fmod(hex_base, 8*k+5)/(8*k + 5);
-		series -= fmod(hex_base, 8*k+6)/(8*k + 6);
-		hex_base /= 16;
-	}
-		
-	const Number eps = std::numeric_limits<Number>::epsilon();
-	for( ; true; k+=1) {
-		Number term = hex_base*(4/(8*k+1) - 2/(8*k+4) - 1/(8*k+5) - 1/(8*k+6));
-		if( abs(term) < eps * abs(series) ) {
-			break;
-		}
-		series += term;
-		hex_base /= 16;
-	}
+	const Number eps = static_cast<Number>(0.01);
+  Number seriesR = 0;
+  const Number epsR = std::numeric_limits<Number>::epsilon();
 	
+  Number hex_base;
+  Number k8;
+  Number term;
+  //if ( floor(multiplier) == multiplier && multiplier < std::numeric_limits<unsigned long long>::max()
+  //  && digit <= 16
+  //  && pow(16ULL,digit) <= std::numeric_limits<unsigned long long>::max()/static_cast<unsigned long long>(multiplier) )
+  //{// optimize
+  //  unsigned long long i_hex_base = pow(16ULL,digit) * static_cast<unsigned long long>(multiplier);
+  //  unsigned long long i_k8 = 0;
+  //  term = static_cast<Number>(4*(i_hex_base%(i_k8+1)))/static_cast<Number>(i_k8+1)
+  //    - static_cast<Number>(2*(i_hex_base%(i_k8+4)))/static_cast<Number>(i_k8+4)
+  //    - static_cast<Number>(i_hex_base%(i_k8+5))/static_cast<Number>(i_k8+5)
+  //    - static_cast<Number>(i_hex_base%(i_k8+6))/static_cast<Number>(i_k8+6);
+  //  if (i_hex_base != 1 && i_hex_base != multiplier) {
+  //  do {
+  //    series += term;
+  //    i_hex_base /= 16; i_k8 += 8;
+  //    term = static_cast<Number>(4*(i_hex_base%(i_k8+1)))/static_cast<Number>(i_k8+1)
+  //      - static_cast<Number>(2*(i_hex_base%(i_k8+4)))/static_cast<Number>(i_k8+4)
+  //      - static_cast<Number>(i_hex_base%(i_k8+5))/static_cast<Number>(i_k8+5)
+  //      - static_cast<Number>(i_hex_base%(i_k8+6))/static_cast<Number>(i_k8+6);
+  //  } while (i_hex_base != 1 && i_hex_base != multiplier);
+  //  }
+  //  hex_base = static_cast<Number>(i_hex_base);
+  //  k8 = static_cast<Number>(i_k8);
+  //  series = frac(series);
+  //}
+  //else 
+  {
+    hex_base = pow(Number(16), digit) * multiplier;
+    k8 = 0;
+    term = 4*fmod(hex_base, k8+1)/(k8+1)
+      - 2*fmod(hex_base, k8+4)/(k8+4)
+      - fmod(hex_base, k8+5)/(k8+5)
+      - fmod(hex_base, k8+6)/(k8+6);
+    do {
+      series += term;
+      hex_base /= 16; k8 += 8;
+      term = 4*fmod(hex_base, k8+1)/(k8+1) 
+        - 2*fmod(hex_base, k8+4)/(k8+4)
+        - fmod(hex_base, k8+5)/(k8+5)
+        - fmod(hex_base, k8+6)/(k8+6);
+    } while ( hex_base >= 1 );
+    series = frac(series);
+  }
+  do {
+		series += term;
+    hex_base /= 16; k8 += 8;
+		term = hex_base*(4/(k8+1) - 2/(k8+4) - 1/(k8+5) - 1/(k8+6));
+  } while ( abs(term) >= eps * abs(series) );
+  do {
+    seriesR += term;
+    hex_base /= 16; k8 += 8;
+    term = hex_base*(4/(k8+1) - 2/(k8+4) - 1/(k8+5) - 1/(k8+6));
+  } while ( abs(term) >= epsR * abs(seriesR) );
+
 	return series < 0 
-    ? 1-abs(frac(series*multiplier))
-    : frac(series*multiplier);
+    ? 1-abs(frac(series+seriesR))
+    : frac(series+seriesR);
   /** you need 
   * trunc(calculate_pi(digit) * pow(16.0,digit)) * pow(16.0,-digit-digit)
   * @see circular_constant::operator-
@@ -1058,10 +1096,10 @@ Number calculate_pi(int digit/* = std::numeric_limit<Number>::digit/4 - 1 */, Nu
 */
 template<typename Number = double>
 struct circular_constant {
-  Number approximation;
-  Number remainder1;
-  Number remainder2;
-  Number multiplier;
+  mutable Number approximation;
+  mutable Number remainder1;
+  mutable Number remainder2;
+  mutable Number multiplier;
   Number addend;
   Number new_multiplier;
 
@@ -1078,7 +1116,7 @@ struct circular_constant {
   circular_constant(Number _Approx, Number _Rem1, Number _Rem2, Number _Mulp, Number _Adde, Number _Mulp_new)
     : approximation(_Approx), remainder1(_Rem1), remainder2(_Rem2), multiplier(_Mulp), addend(_Adde), new_multiplier(_Mulp_new) {}
 
-  void calculate() {
+  void calculate() const {
     if ( new_multiplier != multiplier ) {
       Number scale = new_multiplier / multiplier;
       if ( scale == -1 || scale == 4 || scale == 2 || scale == 1 || scale == 0.5 || scale == 0.25 || scale == 0.125 ) {
@@ -1088,9 +1126,25 @@ struct circular_constant {
         remainder2 *= scale;
       } else {
         int digit = std::numeric_limits<Number>::digits / 4 - 1;
-        approximation = trunc(calculate_pi<Number>() * new_multiplier * pow(Number(16),digit)) * pow(Number(16),-digit);
-        remainder1 = trunc(calculate_pi<Number>(digit, new_multiplier) * pow(Number(16),digit)) * pow(Number(16),-digit-digit);
-        remainder2 = trunc(calculate_pi<Number>(digit+digit, new_multiplier) * pow(Number(16),digit)) * pow(Number(16),-digit-digit-digit);
+
+        Number sign = new_multiplier >= 0 ? 1 : -1;
+        Number scale = abs(new_multiplier);
+        Number binary_offset = 1;
+        while (binary_offset < scale) {
+          binary_offset *= 2;
+        }
+        approximation
+          = trunc(calculate_pi<Number>() * scale/binary_offset * pow(Number(16),digit))
+            * pow(Number(16),-digit) * binary_offset
+              * sign;
+        remainder1
+          = trunc(calculate_pi<Number>(digit, scale/binary_offset)
+            * pow(Number(16),digit)) * pow(Number(16),-digit-digit) * binary_offset
+              * sign;
+        remainder2
+          = trunc(calculate_pi<Number>(digit+digit, scale/binary_offset)
+            * pow(Number(16),digit)) * pow(Number(16),-digit-digit-digit) * binary_offset
+              * sign;
       }
       multiplier = new_multiplier;
     }
@@ -1156,34 +1210,38 @@ struct circular_constant {
   }
 
   bool operator==(const Number& right) const {
-    if ( !calculated() ) {
-      calculate();
+    Number scale = new_multiplier / multiplier;
+    if ( scale > 0 ) {
+      return abs((addend/scale + approximation+remainder1+remainder2) - right/scale)
+        < std::numeric_limits<Number>::epsilon();
+    } else if ( scale == 0 ) {
+      return addend == right;
     }
-    return abs((addend + approximation+remainder1) - right)
-      < std::numeric_limits<Number>::epsilon();
   }
 
   bool operator!=(const Number& right) const {
     return !(*this == right);
   }
 
-  bool operator>(const Number& right) const {
-    if ( calculated() ) {
-      return (addend + approximation+remainder1) > right;
-    } else {
-      auto correct = circular_constant(*this);
-      correct.calculate();
-      return correct > right;
+  bool operator<(const Number& right) const {
+    Number scale = new_multiplier / multiplier;
+    if ( scale > 0 ) {
+      return (addend/scale + approximation+remainder1+remainder2) < right/scale;
+    } else if ( scale == 0 ) {
+      return addend < right;
+    } else /* ( scale  < 0 ) */ {
+      return (addend/scale + approximation+remainder1+remainder2) > right/scale;
     }
   }
 
-  bool operator<(const Number& right) const {
-    if ( calculated() ) {
-      return (addend + approximation+remainder1) < right;
-    } else {
-      auto correct = circular_constant(*this);
-      correct.calculate();
-      return correct < right;
+  bool operator>(const Number& right) const {
+    Number scale = new_multiplier / multiplier;
+    if ( scale > 0 ) {
+      return (addend/scale + approximation+remainder1+remainder2) > right/scale;
+    } else if ( scale == 0 ) {
+      return addend > right;
+    } else /* ( scale  < 0 ) */ {
+      return (addend/scale + approximation+remainder1+remainder2) < right/scale;
     }
   }
 
@@ -1208,12 +1266,17 @@ struct circular_constant {
   }
 
   friend Number operator/(const Number& left, const circular_constant& pi) {
-    if ( pi.calculated() ) {
-      return left / (pi.addend + pi.approximation+pi.remainder1);
+    Number scale = pi.new_multiplier / pi.multiplier;
+    Number discrim = pi.approximation * scale;
+    if ( (discrim >= 0 && pi.addend >= 0) || (discrim < 0 && pi.addend < 0) ) {
+      // left/(pi*multiplier + addend)
+      // left*scale / ((pi*multiplier + addend)*scale)
+      return (left/scale) / (pi.addend/scale + pi.approximation+pi.remainder1+pi.remainder2);
     } else {
-      auto correct = circular_constant(pi);
-      correct.calculate();
-      return left / correct;
+      if ( !pi.calculated() ) {
+        pi.calculate();
+      }
+      return left / (pi.addend + pi.approximation + pi.remainder1 + pi.remainder2);
     }
   }
 
@@ -1260,19 +1323,18 @@ struct circular_constant {
   }
 
   operator Number() const {
-    if ( calculated() ) {
-      return addend + approximation + remainder1;
+    Number scale = new_multiplier / multiplier;
+    Number discrim = approximation * scale;
+    if ( (discrim >= 0 && addend >= 0) || (discrim < 0 && addend < 0) ) {
+      // addend + pi*new_multiplier
+      // addend/(new_multiplier/multiplier) + pi*new_multiplier/(new_multiplier/multiplier)
+      // addend/(new_multiplier/multiplier) + pi*multiplier
+      return (addend/scale + approximation+remainder1+remainder2) * scale;
     } else {
-      Number scale = new_multiplier / multiplier;
-      if ( scale == -1 || scale == 4 || scale == 2 || scale == 1 || scale == 0.5 || scale == 0.25 || scale == 0.125 ) {
-        // significand not change
-        return addend + approximation*scale + remainder1*scale;
-      } else {
-        int digit = std::numeric_limits<Number>::digits / 4 - 1;
-        Number the_approximation = trunc(calculate_pi<Number>() * new_multiplier * pow(Number(16),digit)) * pow(Number(16),-digit);
-        Number the_remainder1 = trunc(calculate_pi<Number>(digit, new_multiplier) * pow(Number(16),digit)) * pow(Number(16),-digit-digit);
-        return addend + the_approximation+the_remainder1;
+      if ( !this->calculated() ) {
+        this->calculate();
       }
+      return addend + approximation + remainder1 + remainder2;
     }
   }
 };
@@ -1289,7 +1351,7 @@ Number cos(const Number& x, const circular_constant<Number>& pi);
  *   [-pi*2, pi*2]
  * 
  * @return 
- *   [0, 1]
+ *   [0, 1], max_error ~= epsilon, avg_error ~= epsilon/6
  * 
  * @derivative
  *   differentiate(sin, x) = cos(x)
@@ -1318,28 +1380,25 @@ Number cos(const Number& x, const circular_constant<Number>& pi);
 */
 template<typename Number>
 Number sin(const Number& x, const circular_constant<Number>& pi = circular_constant<Number>()) {
-  if ( x < 0 ) {
-    //  convergence optimize, sin(x) = -sin(-x)
+  if ( x < 0 ) {//  convergence optimize, sin(x) = -sin(-x)
     return -sin(abs(x), pi);
-  } else if ( x == 0 ) {
-    // not convergence
+  } else if ( x == 0 ) {// not convergence
     return static_cast<Number>(0);
-  } else if ( x > pi/2 ) {
-    // convergence optimize
+  } else if ( x > pi/2 ) {// convergence optimize
     int n = static_cast<int>(trunc(x / (pi/2)));
     auto xn = x % (pi/2);
     switch ( n % 4 ) {
       case 0: // 0 -> 1
         return sin(static_cast<Number>(xn), pi);
       case 1: // 1 -> 0
-        if ( abs(Number(xn)) - pi/2 < 0.1 ) {
+        if ( Number(xn) - pi/2 < 0.125 ) {
           return sin(static_cast<Number>(pi/2 - xn), pi);
         }
         return cos(static_cast<Number>(xn), pi);
       case 2: // 0 -> -1
         return -sin(static_cast<Number>(xn), pi);
       case 3: // -1 -> 0
-        if ( abs(Number(xn)) - pi/2 < 0.1 ) {
+        if ( Number(xn) - pi/2 < 0.125 ) {
           return -sin(static_cast<Number>(pi/2 - xn), pi);
         }
         return -cos(static_cast<Number>(xn), pi);
@@ -1419,29 +1478,26 @@ Number sin(const Number& x, const circular_constant<Number>& pi = circular_const
 */
 template<typename Number>
 Number cos(const Number& x, const circular_constant<Number>& pi = circular_constant<Number>()) {
-  if ( abs(x) > pi/2 ) {
-    // convergence optimize
+  if ( abs(x) > pi/2 ) {// convergence optimize
     int n = static_cast<int>(trunc(x / (pi/2)));
     auto xn = x % (pi/2);
     switch ( n % 4 ) {
       case 0: // 1 -> 0
-        if ( abs(Number(xn)) - pi/2 < 0.1 ) {
+        if ( abs(Number(xn)) - pi/2 < 0.125 ) {
           return sin(static_cast<Number>(pi/2 - xn), pi);
         }
         return cos(static_cast<Number>(xn), pi);
       case 1: // 0 -> -1
         return -sin(static_cast<Number>(xn), pi);
       case 2: // -1 -> 0
-        if ( abs(Number(xn)) - pi/2 < 0.1 ) {
+        if ( abs(Number(xn)) - pi/2 < 0.125 ) {
           return -sin(static_cast<Number>(pi/2 - xn), pi);
         }
         return -cos(static_cast<Number>(xn), pi);
       case 3: // 0 -> 1
         return  sin(static_cast<Number>(xn), pi);
     }
-  } else
-  if ( x == 0 ) {
-    // seriesR not convergence
+  } else if ( x == 0 ) {// seriesR not convergence
     return static_cast<Number>(1);
   }
 
@@ -1504,7 +1560,7 @@ Number cos(const Number& x, const circular_constant<Number>& pi = circular_const
  *   tan(x) = sin(x*2)/(cos(x*2) + 1)
 */
 template<typename Number> inline
-Number tan(const Number& x, const Number pi = static_cast<Number>(3.141592653589793)) {
+Number tan(const Number& x, const circular_constant<Number>& pi = circular_constant<Number>()) {
   return sin(x,pi) / cos(x,pi);
 /**
  * @alternative of 'maclaurin_series'
@@ -1542,7 +1598,7 @@ Number tan(const Number& x, const Number pi = static_cast<Number>(3.141592653589
  *   asin(x) = sum<k=0,inf>( fact2(2*k-1)/fact2(2*k) * pow(x,2*k+1)/(2*k+1) )  :maclaurin_series
 */
 template<typename Number>
-Number asin(const Number& x, const Number pi = static_cast<Number>(3.141592653589793)) {
+Number asin(const Number& x, const circular_constant<Number>& pi = circular_constant<Number>()) {
 /** inverse sine function details
  * 
  * @alternative for 'maclaurin_series'
@@ -1585,14 +1641,13 @@ Number asin(const Number& x, const Number pi = static_cast<Number>(3.14159265358
 */
   assert( abs(x) <= 1 );
   if ( x < 0 ) {// convergence optimize
-    return -asin(abs(x));
+    return -asin(abs(x), pi);
   } else if ( x == 0 ) {// not convergence
     return static_cast<Number>(0);
   } else if ( x > 0.625 ) {// convergence slow, from Netlib or GCC
-    return pi/2 - asin( sqrt((1 - x)/2) )*2;
+    return static_cast<Number>(pi/2 - asin( sqrt((1 - x)/2), pi )*2);
   }
 
-  assert( 0 < x && x <= 0.625 );
   // sum maclaurin_series
   const Number eps = static_cast<Number>(0.01);
   Number series = 0;
@@ -1643,8 +1698,8 @@ Number asin(const Number& x, const Number pi = static_cast<Number>(3.14159265358
  *   acos(x) = pi/2 - asin(x)
 */
 template<typename Number>
-Number acos(const Number& x, const Number pi = static_cast<Number>(3.141592653589793)) {
-  return pi/2 - asin(x);
+Number acos(const Number& x, const circular_constant<Number>& pi = circular_constant<Number>()) {
+  return static_cast<Number>( pi/2 - asin(x,pi) );
 }
 
 /**
@@ -1713,7 +1768,7 @@ Number atan(const Number& x) {
  *   (-pi, pi]
 */
 template<typename Number> inline
-Number atan2(const Number& y, const Number& x, const Number pi = static_cast<Number>(3.141592653589793)) {
+Number atan2(const Number& y, const Number& x, const circular_constant<Number>& pi = circular_constant<Number>()) {
   if (x > 0) {
     return atan(y / x);
   } else if (x < 0 && y >= 0) {
@@ -1721,9 +1776,9 @@ Number atan2(const Number& y, const Number& x, const Number pi = static_cast<Num
   } else if (x < 0 && y < 0) {
     return atan(y / x) - pi;
   } else if (x == 0 && y > 0) {
-    return pi / 2;
+    return static_cast<Number>( pi/2 );
   } else if (x == 0 && y < 0) {
-    return -pi / 2;
+    return static_cast<Number>( -pi/2 );
   } else  /* x == 0 && y == 0 */ {
     return std::numeric_limits<Number>::signaling_NaN();
   }
