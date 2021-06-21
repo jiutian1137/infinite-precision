@@ -1,6 +1,6 @@
 #pragma once
 /*{ "clmagic/calculation/fundamental/transcendental_functions.h":{
-  "License": "Please identify Author",
+  "License": "Please identify the Author of specified function or class",
   "Author": "LongJiangnan",
   "Date": "2019-2021",
 
@@ -33,6 +33,7 @@
   }
 } }*/
 
+#include <iostream>
 
 #include "float.h"
 #include "rational.h"
@@ -42,8 +43,7 @@
 #include <numeric>
 #include <vector>
 namespace calculation 
-{	
-
+  {	
 /* minimum value */
 using std::min;
 	
@@ -201,110 +201,85 @@ auto product(Integer start, Integer end, Function f) -> decltype( f(start)*f(end
 }
 
 /**
- * factorial:
- *   1*2*3*...*order,
- *   zeroe-order is 1 .
- * 
- * @param order 
- *   is integer
- * 
- * @symbol
- *   fact(order) = order!
- * 
+ * @brief 
+ *   factorial is 1*2*3*...*n , zeroe-order is 1 .
+ * @param n 
+ *   positive_integer
  * @formula
- *   fact(order) = 1*2*3*...*order
+ *   factorial(n) = 1*2*3*...*n
+ *   factorial(n) = n == 0 ? 1 : product<k=1,n>( k )
 */
 template<typename Number = unsigned long long>
-Number fact(Number order) {
-  assert( order >= 0 );
-  assert( floor(order) == order );
+Number factorial(Number n) {
+  assert( n >= 0 );
+  assert( floor(n) == n );
   Number result = 1;
-  for (size_t i = 2/*ignore'1'*/; i <= static_cast<size_t>(order); ++i) {
-    result *= i;
+  for (size_t k = 2/*ignore'1'*/; k <= static_cast<size_t>(n); ++k) {
+    result *= k;
   }
 
   return result;
 }
 
 /**
- * shifted_factorial:
- *   shift*(shift + 1)*(shift + 2)*(shift + 3)*...*(shift+order-1),
- *   zeroe-order is 1 .
- * 
- * @param order 
- *   is any number, must (shift + integer)
- * 
- * @param shift 
- *   is any number
- * 
- * @symbol
- *   fact(order,shift) = <shift>order
- * 
+ * @brief 
+ *   shifted factorial is 1*(x + 0)*(x + 1)*(x + 2)*...*(x + n-1), zeroe-order is 1 .
+ * @param x
+ *   any number
+ * @param n 
+ *   positive_integer
  * @formula
- *   fact(order,shift) = shift*(shift + 1)*(shift + 2)*(shift + 3)*...*(shift+order-1)
- *   fact(order,1) = fact(order)
- * 
- * @relation for 'gamma(x)'
- *                        gamma(shift+order)
- *   fact(order,shift) = --------------------
- *                        gamma(shift) 
+ *   factorial(x,n) = 1*(x + 0)*(x + 1)*(x + 2)*...*(x + n-1)
+ *   factorial(x,n) = n == 0 ? 1 : product<k=0,n-1>( x + k )
+ *   factorial(1,n) = factorial(n)
+ *   factorial(x,n) = gamma(x+n)/gamma(x)
 */
 template<typename Number = unsigned long long>
-Number fact(Number order, Number shift) {
-  assert( order >= 0 );
-  assert( floor(order) == order );
+Number factorial(Number x, Number n) {
+  assert( n >= 0 );
+  assert( floor(n) == n );
   Number result = 1;
-  for (size_t i = 0; i != static_cast<size_t>(order); ++i) {
-    result *= (i + shift);
+  for (size_t k = 0; k != static_cast<size_t>(n); ++k) {
+    result *= (x + k);
   }
 
   return result;
 }
 
 /**
- * double factorial: 
- *   zero-order: 1, 
- *   odd-order: 1*3*5*7*...*(order-2)*order, 
- *   even-order: 2*4*6*8*...*(order-2)*order.
- * 
- * @param order 
- *   is integer
- * 
- * @relation for 'fact' 
- *   fact2(order) * fact2(order-1) = fact(order)
- * 
- * @relation for 'gamma'
- *    fact2(2*order - 1)
- *   -------------------- = gamma(order+0.5)
- *    2^order * sqrt(pi)
+ * @brief 
+ *   double factorial is 1*3*5*7*...*(n-2)*n when n is odd, is 2*4*6*8*...*(n-2)*n when n is even, is 1 when n == 0 .
+ * @param n 
+ *   positive_integer
+ * @formula
+ *   factorial2(n) * factorial2(n-1) = factorial(n)
+ *   factorial2(2*n-1)/( pow(2,n) * sqrt(pi) ) = gamma(n+0.5)
 */
 template<typename Number = unsigned long long>
-Number fact2(Number order) {
-  assert( order >= 0 );
-  assert( floor(order) == order );
+Number factorial2(Number n) {
+  assert( n >= 0 );
+  assert( floor(n) == n );
   if constexpr (std::is_same_v<Number, unsigned int>) {
-    if( order > 20 ) { throw std::overflow_error("fact2(order)"); }
+    if( n > 20 ) { throw std::overflow_error("fact2(order)"); }
   } else if constexpr (std::is_same_v<Number, unsigned long long>) {
-    if( order > 33 ) { throw std::overflow_error("fact2(order)"); }
+    if( n > 33 ) { throw std::overflow_error("fact2(order)"); }
   }
-  bool   odd    = static_cast<size_t>(order) & 1;
+  bool   odd    = static_cast<size_t>(n) & 1;
   Number result = 1;
-  for (size_t i = odd?1:2; i <= static_cast<size_t>(order); i+=2) {
-    result *= i;
+  for (size_t k = odd?1:2; k <= static_cast<size_t>(n); k+=2) {
+    result *= k;
   }
 
   return result;
 }
 
 /**
- * binomial coefficient:
- *   pow(a + b, 2) = binomial(2,0)*a*a + binomial(2,1)*a*b + binomial(2,2)*b*b .
- * 
+ * @brief 
+ *   binomial coefficient is pow(a + b, 2) = binomial(2,0)*a*a + binomial(2,1)*a*b + binomial(2,2)*b*b .
  * @param power 
- *   is integer
- * 
+ *   integer
  * @param nth 
- *   is integer
+ *   integer
  * 
  * @formula
  *                                  1*2*3*...*power                 power!
@@ -323,16 +298,16 @@ Number fact2(Number order) {
  * 
  * @binomial theorem (power is positive integer)
  *          power                                            power-nth    nth
- *   (a + b)^     = sum<k=nth,power>( binomial(power,nth) * a^         * b^   )
+ *   (a + b)^     = sum<nth=0,power>( binomial(power,nth) * a^         * b^   )
  * 
  * @binomial series (power is any number)
- *          power                    power*(power-1)*...*(power-nth+1)     nth
- *   (1 + x)^     = sum<nth=0,inf>( ----------------------------------- * x^   )
+ *          power                    power*(power-1)*...*(power-(nth-1))     nth
+ *   (1 + x)^     = sum<nth=0,inf>( ------------------------------------- * x^   ) + O(...)
  *                                               1*2*3*nth
  * 
- *                                   gamma(power+1)/gamma(power-th+1)     nth
- *                = sum<nth=0,inf>( ---------------------------------- * x^   )
- *                                                nth!
+ *                                   factorial(power-(nth-1), nth)     nth
+ *                = sum<nth=0,inf>( ------------------------------- * x^   ) + O(...)
+ *                                         factorial(nth)
 */
 template<typename Integer = unsigned long long>
 Integer binomial(size_t power, size_t nth) {
@@ -446,6 +421,24 @@ Integer binomial(size_t power, size_t nth) {
 */
 template<typename Rational/* = rational64_t*/>
 std::vector<Rational> bernoulli_numbers(size_t index) {
+/**
+ * @relation for recurrence 
+ *   ...
+ * 
+ * @relation for recurrence form2
+ *
+ *    Sum[k=0,n-1]( B[k]*binomial(n,k) )    == 0                      :using recurrence relation
+ *
+ *    Sum[k=0,n]( B[k]*binomial(n+1,k) )    == 0                      :replace 'n' by 'n+1'
+ *
+ *    Sum[k=0,n-1]( B[k]*binomial(n+1,k) )  == -B[n]*binomial(n+1,n)  :substract last nth
+ *
+ *    Sum[k=0,n-1]( B[k]*binomial(n+1,k) )
+ *   -------------------------------------- == B[n]
+ *              - binomial(n+1,n)
+ *
+ * ...
+*/
   auto number_array = std::vector<Rational>(index + 1); 
        number_array[0] = 1;
   for (size_t n = 1; n <= index; ++n) {
@@ -506,6 +499,8 @@ Number pow(const Number& x, int power) {
    * = product<i=0,7>( pow(x, 2^ * ( (203 - sum<k=0,i-1>(...)) % 2^   / 2^ )) )
    *                           i                                        i+1    i
    * = product<i=0,7>( pow(x, 2^) * pow(x, (203 - sum<k=0,i-1>(...)) % 2^   / 2^) )
+   * 
+   * = product<i=0,7>( pow(x, 2^i) * has_bit )
   */
   int seriesP = 0;
   int termP = 1;
@@ -602,58 +597,30 @@ Number cbrt(const Number& x) {
 }
 
 /**
- * exponential function 
- *   for e(2.71828...)
- * 
- * @param x
+ * @brief 
+ *   exponential function for e(2.71828...)
+ * @param x 
  *   (-inf, inf)
- * 
- * @return
+ * @return 
  *   (0, inf)
- * 
- * @law
+ * @law 
  *   exp(a)*exp(b) = exp(a+b)
- * 
  *   exp(a)/exp(b) = exp(a-b)
- * 
  *   exp(-x) = 1/exp(x)
- * 
- * @derivative
+ * @derivative 
  *   differentiate(exp,x) = exp(x)
- * 
- * #integral
+ * @integral 
  *   integrate(exp(x),dx) = exp(x) + constant
- * 
- * @alternative
+ * @alternative 
  *   exp(x) = limit<n->inf>( pow(1 + x/n, n) )
- * 
  *   exp(x) = sum<k=0,inf>( pow(x,k) / fact(k) )
  * 
  *   ...
 */
 template<typename Number>
 Number exp(const Number& x) {
-/** exponential function details
- * 
- * @alternative for 'limit'
- *   exp(x)
- *                          x  n
- *    = limit<n->inf>( 1 + ---)^ )
- *                          n
- * 
- * @alternative for 'maclaurin_series'
- *   exp(x)
- *                     @(X=0) dexp(X)     k
- *    = sum<k=0,inf>( ---------------- * x^ )       :1. integration by parts
- *                           k!
- *                     exp(0)     k
- *    = sum<k=0,inf>( -------- * x^ )               :   dexp(X) = exp(X)
- *                       k!
- *                      1      k
- *    = sum<k=0,inf>( ----- * x^ )
- *                      k!
-*/
-  if ( x < 0 ) {// convergence slow, odd terms are negative, even terms are positive 
+
+  if ( x < 0 ) {// bad-accuracy, odd terms are negative, even terms are positive 
     return 1 / exp(abs(x));
   } else if ( x > 1 ) {// convergence slow, see @alternative for 'maclaurin_series'
     Number xi = floor(x);
@@ -662,20 +629,29 @@ Number exp(const Number& x) {
     return static_cast<Number>(1);
   }
 
+  /**
+   * exp(x)
+   *                     @(X=0) dexp(X)     k
+   *    = sum<k=0,inf>( ---------------- * x^ )       :1. integration by parts
+   *                           k!
+   *                     exp(0)     k
+   *    = sum<k=0,inf>( -------- * x^ )               :   dexp(X) = exp(X)
+   *                       k!
+   *                      1      k
+   *    = sum<k=0,inf>( ----- * x^ )
+   *                      k!
+  */
   assert( 0 < x && x <= 1 );
   Number series = 0;
   const Number eps = static_cast<Number>(0.01);
   Number seriesR = 0;
   const Number epsR = std::numeric_limits<Number>::epsilon();
-  
   Number n = 0;
   Number term = 1;
   do {
     series += term;
-    /**
-     *  term[n+1]     pow(x,n+1)     pow(x,n)      x
-     * ----------- = ------------ / ---------- = -----
-     *  term[n]       fact(n+1)      fact(n)      n+1
+    /** term[n+1]/term[n] = pow(x,n+1)/fact(n+1) / ( pow(x,n)/fact(n) )
+    * = x/(n+1)
     */
     term *= ( x/(n += 1) );
   } while ( term >= eps*series );
@@ -686,31 +662,26 @@ Number exp(const Number& x) {
 
   return series + seriesR;
 }
-
+ 
 /**
- * inverse hyperbolic tangent
- *
+ * @brief
+ *   inverse hyperbolic tangent
  * @param x 
  *   (-1, 1)
- * 
  * @return 
  *   (-inf, inf)
- * 
  * @addition formula
  *   atanh(u) + atanh(v) == atanh((u+v) / (1 + u*v))
- * 
  * @derivative
  *   differentiate( atanh, x ) = 1/(1 - x*x)
- * 
  * @integral
  *   integrate( atanh(x), dx ) = log(1 - x*x)/2 + x*atanh(x) + constant
- * 
  * @alternative
  *   atanh(x) = sum<k=0,inf>( pow(x,2*k+1)/(2*k+1) )    :maclaurin_series
- * 
  *   atanh(x) = asinh( x/sqrt(1-x*x) ) = (+ -)acosh( 1/sqrt(1-x*x) )
- * 
  *   atanh(x) = log((1+x)/(1-x))/2
+ * 
+ *   ...
 */
 template<typename Number>
 Number atanh(const Number& x) {
@@ -832,31 +803,23 @@ Number atanh(const Number& x) {
 }
 
 /**
- * natural logarithm function:
- *   logarithm for e(2.7182...)
- *
+ * @brief 
+ *   natural logarithm, logarithm for e(2.7182...)
  * @param x_significand 
  *   (0, inf)
- * 
  * @return 
  *   (-inf, inf)
- * 
  * @law
  *   log(a*b) = log(a) + log(b)
- * 
  *   log(a/b) = log(a) - log(b)
- * 
  *   log(x^b) = log(x) * b
- * 
+ *   log<b>(x) = log<c>(x)/log<c>(b)
  * @derivative
  *   differentiate(log,x) = 1/x
- * 
  * @integral
  *   integrate(log(x),dx) = x*(log(x)-1) + constant
- * 
  * @alternative
  *   log(x) = log( x.significand() * pow(2,x.exponent()) ) = log( x,significand() ) + x.exponent()*log(2)
- *
  *   log(x) = atanh((x - 1)/(x + 1)) * 2
  * 
  *   ...
@@ -978,12 +941,9 @@ Number acosh(const Number& x) {
 
 
 /**
- * calculate pi:
- *   use Bailey-Borwein-Plouffe formula
- *
- * @return 
- *   pi: ratio of the circumference of a circle to its diameter
- * 
+ * @brief calculate pi: use Bailey-Borwein-Plouffe formula
+ * @author David H. Bailey, Peter Borwein, Simon Plouff
+ * @return ratio of the circumference of a circle to its diameter
  * @Bailey-Borwein-Plouffe formula for 'pi'
  *   part of derivation  ...
  *                        1          4           2           1           1
@@ -1015,8 +975,22 @@ Number calculate_pi() {
 }
 
 /** 
- * @param digit std::numeric_limit<Number>::digit/4 - 1
- * @return pi.hex_significant[digit+1, ...) 
+ * @author 
+ *   David H. Bailey, Peter Borwein, Simon Plouffe, Donald Knuth
+ * @param digit 
+ *   std::numeric_limit<Number>::digit/4 - 1
+ * @return 
+ *   pi.hex_significant[digit+1, ...) 
+ * @exapmle 
+ *   digit = std::numeric_limits<double>::digits/4 - 1;
+ *   float256_t A = trunc((calculate_pi<double>()*2) * pow(16.0,digit)) * pow(16.0,-digit);
+ *   float256_t B = trunc(calculate_pi<double>(digit,2) * pow(16.0,digit)) * pow(16.0,-digit-digit);
+ *   float256_t C = trunc(calculate_pi<double>(digit+digit,2) * pow(16.0,digit)) * pow(16.0,-digit-digit-digit);
+ *   std::cout << A << std::endl;
+ *   std::cout << B << std::endl;
+ *   std::cout << C << std::endl;
+ *   std::cout << A + B + C << std::endl;
+ *   std::cout << calculate_pi<float256_t>()*2 << std::endl;
 */
 template<typename Number>
 Number calculate_pi(int digit, Number multiplier = 1) {
@@ -1072,9 +1046,9 @@ Number calculate_pi(int digit, Number multiplier = 1) {
     series = frac(series);
   }
   do {
-		series += term;
+    series += term;
     hex_base /= 16; k8 += 8;
-		term = hex_base*(4/(k8+1) - 2/(k8+4) - 1/(k8+5) - 1/(k8+6));
+    term = hex_base*(4/(k8+1) - 2/(k8+4) - 1/(k8+5) - 1/(k8+6));
   } while ( abs(term) >= eps * abs(series) );
   do {
     seriesR += term;
@@ -1082,7 +1056,7 @@ Number calculate_pi(int digit, Number multiplier = 1) {
     term = hex_base*(4/(k8+1) - 2/(k8+4) - 1/(k8+5) - 1/(k8+6));
   } while ( abs(term) >= epsR * abs(seriesR) );
 
-	return series < 0 
+  return series < 0 
     ? 1-abs(frac(series+seriesR))
     : frac(series+seriesR);
   /** you need 
@@ -1093,6 +1067,7 @@ Number calculate_pi(int digit, Number multiplier = 1) {
 
 /**
  * @brief circular_constant = pi * multiplier + addend
+ * @author LongJiangnan
 */
 template<typename Number = double>
 struct circular_constant {
@@ -1104,10 +1079,13 @@ struct circular_constant {
   Number new_multiplier;
 
   circular_constant() {
-    int digit = std::numeric_limits<Number>::digits / 4 - 1;
-    approximation = trunc(calculate_pi<Number>() * pow(Number(16),digit)) * pow(Number(16),-digit);
-    remainder1 = trunc(calculate_pi<Number>(digit) * pow(Number(16),digit)) * pow(Number(16),-digit-digit);
-    remainder2 = trunc(calculate_pi<Number>(digit+digit) * pow(Number(16),digit)) * pow(Number(16),-digit-digit-digit);
+    static int digit = std::numeric_limits<Number>::digits / 4 - 1;
+    static Number pi_appeoximation = trunc(calculate_pi<Number>() * pow(Number(16),digit)) * pow(Number(16),-digit);
+    static Number pi_remainder1 = trunc(calculate_pi<Number>(digit) * pow(Number(16),digit)) * pow(Number(16),-digit-digit);
+    static Number pi_remainder2 = trunc(calculate_pi<Number>(digit+digit) * pow(Number(16),digit)) * pow(Number(16),-digit-digit-digit);
+    approximation = pi_appeoximation;
+    remainder1 = pi_remainder1;
+    remainder2 = pi_remainder2;
     multiplier = static_cast<Number>(1);
     addend     = static_cast<Number>(0);
     new_multiplier = multiplier;
@@ -1323,6 +1301,10 @@ struct circular_constant {
   }
 
   operator Number() const {
+    if ( multiplier == 0 || new_multiplier == 0 ) {// addend + pi*0*new_multiplier
+      return addend;
+    }
+
     Number scale = new_multiplier / multiplier;
     Number discrim = approximation * scale;
     if ( (discrim >= 0 && addend >= 0) || (discrim < 0 && addend < 0) ) {
@@ -1344,22 +1326,17 @@ template<typename Number>
 Number cos(const Number& x, const circular_constant<Number>& pi);
 
 /**
- * sine function:
- *   use maclaurin_series
- * 
- * @param x
+ * @brief 
+ *   sine function: use maclaurin_series
+ * @param x 
  *   [-pi*2, pi*2]
- * 
  * @return 
  *   [0, 1], max_error ~= epsilon, avg_error ~= epsilon/6
- * 
- * @derivative
+ * @derivative 
  *   differentiate(sin, x) = cos(x)
- * 
- * @integral
+ * @integral 
  *   integrate(sin(x), dx) = -cos(x) + constant
- * 
- * @series expansion
+ * @formula 
  *   sin(x) = -sin(x)              :odd function
  * 
  *   sin(x) = sin(x + pi*2 * n)    :period function
@@ -1421,7 +1398,6 @@ Number sin(const Number& x, const circular_constant<Number>& pi = circular_const
      *  term[k+1]       -1^(k+1)       2*(k+1)+1      -1^k       2*k+1
      * ----------- = -------------- * x^         / ---------- / x^
      *  term[k]       (2*(k+1)+1)!                  (2*k+1)!
-     * 
      *                     (2*k+1)!     x^(2*k+3)
      *             = -1 * ---------- * -----------
      *                     (2*k+3)!     x^(2*k+1)
@@ -1517,11 +1493,9 @@ Number cos(const Number& x, const circular_constant<Number>& pi = circular_const
      *  term[k+1]      -1^(k+1)      2*(k+1)     -1^k      2*k
      * ----------- = ------------ * x^       / -------- / x^
      *  term[k]       (2*(k+1))!                (2*k)!
-     * 
      *                     (2*k)!       x^(2*k+2)
      *             = -1 * ---------- * ----------
      *                     (2*k+2)!     x^(2*k)
-     * 
      *                            1
      *             = -1 * ----------------- * x*x
      *                     (2*k+1)*(2*k+2)
@@ -1574,7 +1548,7 @@ Number tan(const Number& x, const circular_constant<Number>& pi = circular_const
 
 /**
  * inverse sine function:
- *   use Maclaurin series
+ *   use maclaurin_series
  * 
  * @param x 
  *   [-1, 1]
@@ -1762,10 +1736,8 @@ Number atan(const Number& x) {
 }
 
 /**
- * inverse tangent function 
- *   for two arguments
- * @return 
- *   (-pi, pi]
+ * inverse tangent function for two arguments
+ * @return (-pi, pi]
 */
 template<typename Number> inline
 Number atan2(const Number& y, const Number& x, const circular_constant<Number>& pi = circular_constant<Number>()) {
@@ -1958,6 +1930,395 @@ public:
 };
 
 
+template<typename Number>
+Number cyl_bessel_j(Number v, Number z, const circular_constant<Number>& pi = circular_constant<Number>()) {
+  if ( z < 0 ) {// non-negative variable
+    return std::numeric_limits<Number>::signaling_NaN();
+  } else if ( z == 0 ) {// optimize
+    return static_cast<Number>(1);
+  }
+
+  const Number desirable_iteration_count
+    = ceil(log(std::numeric_limits<Number>::epsilon()) / log(Number(0.1))) + 2;
+
+  /**
+   *      term[k+2]     term[k+1]         1            1         pow(z,2)      1        1       pow(z,2)
+   * abs(----------- / -----------) = --------- * ----------- * ---------- / ----- / ------- / ----------
+   *      term[k+1]     term[k]        (k+1)+1     v+(k+1)+1         4        k+1     v+k+1         4
+   *                                k+1         v+k+1
+   *                           = --------- * -----------
+   *                              (k+1)+1     v+(k+1)+1
+   * 
+   *                           = (k+1)/(k+2) * (v+k+1)/(v+k+2)
+   *    conv(v->inf)
+   * 1.0 |     _ ------- - - - - - -
+   *     |  -^
+   *     | ^
+   *     |^ 
+   * 0.5 |* 
+   *     |
+   *     |
+   *     |
+   *     |
+   * 0.0 +- -- -- -- -- -- -- -- -- -- k
+   *          20    40                100  
+  */
+  Number zeroseries_ratio0th = abs( z*z/4/(v+1) );
+  if ( zeroseries_ratio0th < 0.6 ) {
+    /**
+     * 1. Apply relation for 'hypergeometric' function
+     *                                 (-1)^k          1            z
+     * bessel_j<v>(z) = sum<k=0,inf>( -------- * -------------- * (---)^(2*k+v) )
+     *                                   k!       gamma(v+k+1)      2
+     * 
+     *                                 (-1)^k          1           z^2         z
+     * 			          = sum<k=0,inf>( -------- * -------------- * -----^k ) * ---^v
+     *                                   k!       gamma(v+k+1)      4          2
+    */
+    const Number eps = static_cast<Number>(0.01);
+    Number series = 0;
+    const Number epsR = std::numeric_limits<Number>::epsilon();
+    Number seriesR = 0;
+
+    const Number zzo4 = z*z/4;
+    Number term = 1;
+    Number k = 0;
+    do {
+      series += term;
+      /**
+       *  term[k+1]     (-1)^(k+1)             1            z^2           (-1)^k          1           z^2
+       * ----------- = ------------ * ------------------ * -----^(k+1) / -------- / -------------- / -----^k
+       *  term[k]         (k+1)!       gamma(v+(k+1)+1)      4              k!       gamma(v+k+1)      4
+       * 
+       *                (-1)^(k+1)       k!       gamma(v+k+1)     (z^2 / 4)^(k+1)
+       *             = ------------ * -------- * -------------- * -----------------
+       *                 (-1)^k        (k+1)!     gamma(v+k+2)     (z^2 / 4)^k
+       * 
+       *                      1        1       z^2
+       *             = -1 * ----- * ------- * -----
+       *                     k+1     v+k+1      4
+      */
+      term *= zzo4 / (k+1) / (v+k+1) * (-1);
+      k += 1;
+    } while ( abs(term) >= eps*abs(series) );
+    assert( z != 0 );
+    do {
+      seriesR += term;
+      term *= zzo4 / (k+1) / (v+k+1) * (-1);
+      k += 1;
+    } while ( abs(term) >= epsR*abs(seriesR) );
+    
+    return (series + seriesR) * exp( v*log(z/2) - lgamma(v + 1) );
+  }
+	
+  /**
+   *      term[m+2]     term[m+1]                                                                                           1                     1                                                                           1                 1
+   * abs(----------- / -----------) = (v*v - ((m+1)*2+0.5)*((m+1)*2+0.5))*(v*v - ((m+1)*2+1.5)*((m+1)*2+1.5)) * ------------------------- * ------------- / (v*v - (m*2+0.5)*(m*2+0.5))*(v*v - (m*2+1.5)*(m*2+1.5)) / ----------------- / -------------
+   *      term[m+1]     term[m]                                                                                  ((m+1)*2+1)*((m+1)*2+2)     pow(2*z, 2)                                                               (m*2+1)*(m*2+2)     pow(2*z, 2)
+   *                          (v*v - ((m+1)*2+0.5)*((m+1)*2+0.5))*(v*v - ((m+1)*2+1.5)*((m+1)*2+1.5))         (m*2+1)*(m*2+2)         pow(2*z, 2)
+   *                       = ------------------------------------------------------------------------- * ------------------------- * -------------
+   *                          (v*v - (m*2+0.5)*(m*2+0.5))*(v*v - (m*2+1.5)*(m*2+1.5))                     ((m+1)*2+1)*((m+1)*2+2)     pow(2*z, 2)
+   *                          (v*v - pow(m*2+2.5,2))*(v*v - pow(m*2+3.5,2))     (m*2+1)*(m*2+2)
+   *                       = ----------------------------------------------- * -----------------
+   *                          (v*v - pow(m*2+0.5,2))*(v*v - pow(m*2+1.5,2))     (m*2+3)*(m*2+4)
+   *   conv(v->inf), the break at ( v*v < pow(m*2+2.5,2) ), m = (v-2.5)/2
+   * 10.0|                                ^_
+   *     |                                ^ _
+   *     |                                ^   - _ _ _ _
+   * 1.0 |     _ ------- - - - - - - - - -^
+   *     |   -^
+   *     |  ^
+   *     | ^ 
+   * 0.5 |^ 
+   *     |*
+   *     |
+   *     |
+   *     |
+   * 0.0 +- -- -- -- -- -- -- -- -- -- m
+   *          20    40                100
+  */
+  Number infseries_max_iteration_count = (v-2.5)/2;
+  Number infseries_ratio0th = abs( (v*v - 0.5*0.5)*(v*v - 1.5*1.5) / (z*z*8) );
+  if ( (infseries_max_iteration_count >= desirable_iteration_count && infseries_ratio0th < 3.8)
+    || /* term[0th] time */infseries_ratio0th < std::numeric_limits<Number>::epsilon() )
+  {
+    /**
+     * cyl_bessel_j(v,z)*2
+     * 
+     * 1. Apply relation, cyl_bessel_j(v,z)*2 = cyl_hankel_1(v,z)+cyl_hankel_2(v,z)
+     * 
+     *              2                                                  factorial(v-0.5-(m-1), m)*factorial(v+0.5,m)        1i
+     *   ~= sqrt(------) * exp(1i*(z - v*pi/2 - pi/4)) * sum<m=0,p-1>(----------------------------------------------*pow(-----,m))
+     *            pi*z                                                                  factorial(m)                      2*z
+     *                2                                                   factorial(v-0.5-(m-1), m)*factorial(v+0.5,m)       -1i
+     *      + sqrt(------) * exp(-1i*(z - v*pi/2 - pi/4)) * sum<m=0,p-1>(----------------------------------------------*pow(-----,m))
+     *              pi*z                                                                   factorial(m)                      2*z
+     *
+     * Simplify, exp(1i*A)*Ar + exp(-1i*A)*Br = cos(A)*Ar+i*sin(A)*Ar + cos(A)*Br-i*sin(A)*Br = cos(A)*(Ar+Br) + i*sin(A)*(Ar-Br)
+     *
+     *              2                                                factorial(v-0.5-(m-1), m)*factorial(v+0.5,m)          1
+     *   ~= sqrt(------) * ( cos(z - v*pi/2 - pi/4) * sum<m=0,p-1>( ---------------------------------------------- * pow(-----,m) * (pow(1i,m) + pow(-1i,m)) )
+     *            pi*z                                                                factorial(m)                        2*z
+     *                                                                   factorial(v-0.5-(m-1), m)*factorial(v+0.5,m)          1
+     *                       + i*sin(z - v*pi/2 - pi/4) * sum<m=0,p-1>( ---------------------------------------------- * pow(-----,m) * (pow(1i,m) - pow(-1i,m)) )
+     *                                                                                    factorial(m)                        2*z
+     *                     )
+     * 
+     * Simplify, ...
+     *
+     *              2                                                    factorial(v-0.5-(m*2-1), m*2)*factorial(v+0.5,m*2)          1
+     *   ~= sqrt(------) * ( cos(z - v*pi/2 - pi/4) * sum<m=0,(p-1)/2>( ---------------------------------------------------- * pow(-----,m*2) * pow(-1,m) * 2 )
+     *            pi*z                                                                    factorial(m*2)                            2*z
+     *                                                                     factorial(v-0.5-(m*2+1-1), m*2+1)*factorial(v+0.5,m*2+1)          1
+     *                       - sin(z - v*pi/2 - pi/4) * sum<m=0,(p-1)/2>( ---------------------------------------------------------- * pow(-----,m*2+1) * pow(-1,m) * 2 )
+     *                                                                                         factorial(m*2+1)                               2*z
+     *                     )
+     * 
+     * Simplify, factorial(v-0.5-(m*2-1), m*2)*factorial(v+0.5,m*2) = 1*(v-0.5)*(v-1.5)*... * 1*(v+0.5)*(v*1.5)*... = 1*(v*v-0.5*0.5)*(v*v-1.5*1.5)*...
+     *
+     *              2                                                    1*(v*v-0.5*0.5)*(v*v-1.5*1.5)*...*(v*v-(m*2-0.5)*(m*2-0.5))          1
+     *   ~= sqrt(------) * ( cos(z - v*pi/2 - pi/4) * sum<m=0,(p-1)/2>( ------------------------------------------------------------- * pow(-----,m*2) * pow(-1,m) * 2 )
+     *            pi*z                                                                    factorial(m*2)                                     2*z
+     *                                                                     (v*v-0.5*0.5)*(v*v-1.5*1.5)*...*(v*v-(m*2+0.5)*(m*2+0.5))          1
+     *                       - sin(z - v*pi/2 - pi/4) * sum<m=0,(p-1)/2>( ----------------------------------------------------------- * pow(-----,m*2+1) * pow(-1,m) * 2 )
+     *                                                                                         factorial(m*2+1)                              2*z
+     *                     )
+     * 
+     * cyl_bessel_j(v,z)
+     * 
+     *              2                                                    1*(v*v-0.5*0.5)*(v*v-1.5*1.5)*...*(v*v-(m*2-0.5)*(m*2-0.5))          1
+     *   ~= sqrt(------) * ( cos(z - v*pi/2 - pi/4) * sum<m=0,(p-1)/2>( ------------------------------------------------------------- * pow(-----,m*2) * pow(-1,m) )
+     *            pi*z                                                                    factorial(m*2)                                     2*z
+     *                                                                     (v*v-0.5*0.5)*(v*v-1.5*1.5)*...*(v*v-(m*2+0.5)*(m*2+0.5))          1
+     *                       - sin(z - v*pi/2 - pi/4) * sum<m=0,(p-1)/2>( ----------------------------------------------------------- * pow(-----,m*2+1) * pow(-1,m) )
+     *                                                                                         factorial(m*2+1)                              2*z
+     *                     )
+    */
+    const Number eps = std::numeric_limits<Number>::epsilon();
+    Number jreal  = 0;
+    Number jimag  = 0;
+
+    const Number vv = v * v;
+    const Number z2 = z*2;
+    Number term = 1;
+    Number m2 = 0;
+    do {
+      /**
+       * @jreal
+       *  term[0] = 1
+       * 
+       *  term[m+1]     1*(v*v-0.5*0.5)*(v*v-1.5*1.5)*...*(v*v-((m+1)*2-0.5)*((m+1)*2-0.5))          1                               1*(v*v-0.5*0.5)*(v*v-1.5*1.5)*...*(v*v-(m*2-0.5)*(m*2-0.5))          1
+       * ----------- = --------------------------------------------------------------------- * pow(-----,(m+1)*2) * pow(-1,(m+1)) / ------------------------------------------------------------- / pow(-----,m*2) / pow(-1,m)
+       *  term[m]                             factorial((m+1)*2)                                    2*z                                               factorial(m*2)                                     2*z
+       *                1*(v*v-0.5*0.5)*(v*v-1.5*1.5)*...*(v*v-((m+1)*2-0.5)*((m+1)*2-0.5))     factorial(m*2)         pow(2*z, m*2)         pow(-1,(m+1))
+       *             = --------------------------------------------------------------------- * -------------------- * ------------------- * ---------------
+       *                1*(v*v-0.5*0.5)*(v*v-1.5*1.5)*...*(v*v-(m*2-0.5)*(m*2-0.5))             factorial((m+1)*2)     pow(2*z, (m+1)*2)     pow(-1,m)
+       *                                                                                 1                 1
+       *             = (v*v - (m*2+0.5)*(m*2+0.5))*(v*v - (m*2+1.5)*(m*2+1.5)) * ----------------- * ------------- * -1
+       *                                                                          (m*2+1)*(m*2+2)     pow(2*z, 2)
+       * 
+       * 
+       * @jimag
+       *  term[m+1]     (v*v-0.5*0.5)*(v*v-1.5*1.5)*...*(v*v-((m+1)*2+0.5)*((m+1)*2+0.5))          1                                 (v*v-0.5*0.5)*(v*v-1.5*1.5)*...*(v*v-(m*2+0.5)*(m*2+0.5))          1
+       * ----------- = ------------------------------------------------------------------- * pow(-----,(m+1)*2+1) * pow(-1,(m+1)) / ----------------------------------------------------------- / pow(-----,m*2+1) / pow(-1,m) )
+       *  term[m]                             factorial((m+1)*2+1)                                2*z                                                   factorial(m*2+1)                               2*z
+       *                (v*v-0.5*0.5)*(v*v-1.5*1.5)*...*(v*v-((m+1)*2+0.5)*((m+1)*2+0.5))     factorial(m*2+1)         pow(2*z, m*2+1)         pow(-1,(m+1))
+       *             = ------------------------------------------------------------------- * ---------------------- * --------------------- * ---------------
+       *                (v*v-0.5*0.5)*(v*v-1.5*1.5)*...*(v*v-(m*2+0.5)*(m*2+0.5))             factorial((m+1)*2+1)     pow(2*z, (m+1)*2+1)     pow(-1,m)
+       *                                                                                  1                 1
+       *             =  (v*v - (m*2+1.5)*(m*2+1.5))*(v*v - (m*2+2.5)*(m*2+2.5)) * ----------------- * ------------- * -1
+       *                                                                           (m*2+2)*(m*2+3)     pow(2*z, 2)
+       * term[0] = (v*v-0.5*0.5)/1/(2*z)
+      */
+      jreal += term;
+      term *= ( vv - pow(m2+0.5,2) ) / (m2+1) / z2;
+      jimag += term;
+      term *= ( vv - pow(m2+1.5,2) ) / (m2+2) / z2 * (-1);
+      m2 += 2;
+    } while ( abs(term) >= eps*abs(jreal) );// convergence very fast, not need seriesR
+
+    /** const Number phase = z - v*pi/2 - pi/4;
+     *  return (cos(phase)*(jreal) - sin(phase)*(jimag)) * sqrt(Number(2)/(pi*z));
+    */
+    const Number phase_z = z;
+    const Number phase_v = fmod(v/2 + 0.25, Number(2)) * pi;//(full precision)
+    Number sz = sin(phase_z);
+    Number cz = cos(phase_z);
+    Number sv = sin(phase_v);
+    Number cv = cos(phase_v);
+    Number sin_phase = sz * cv - sv * cz;
+    Number cos_phase = cz * cv + sz * sv;
+    return (cos_phase*jreal - sin_phase*jimag) * sqrt(Number(2)/(pi*z));
+  }
+
+  // continued fraction ...
+  if ( v > z ) {
+    // ...
+  } 
+  
+  {
+    /** solve [zeroseries_ratio0th(z, desirable order 'v') = 0.5] */
+    Number back_n = ceil(z*z/2 - 1) - floor(v);
+    assert( back_n > 0 );
+    
+    /** solve [infseries_ratio0th(z, desirable order 'v') = 3.5]] */
+    Number fward_n = ceil(v) - floor(pow(z*z*28, 0.25));
+    if ( fward_n < 0 || (v-fward_n-1-2.5)/2 < desirable_iteration_count ) {
+      fward_n = std::numeric_limits<Number>::quiet_NaN();
+    }
+
+    if ( fward_n < back_n )
+    {
+      /** forward_recur J[v](z)*(v*2/z) - J[v-1] = J[v+1] */
+      Number Jvm1 = cyl_bessel_j(v-fward_n-1, z, pi);
+      Number Jv = cyl_bessel_j(v-fward_n, z, pi);
+      Number Jv1;
+      for ( ; fward_n > 0; --fward_n) {
+        Jv1 = Jv*(v-fward_n)*2/z - Jvm1;
+        Jvm1 = Jv;
+        Jv = Jv1;
+      }
+      return Jv1;
+    }
+    else 
+    {
+      /** backward_recur J[v](z)*(v*2/z) - J[v+1] = J[v-1] */
+      Number Jv1 = cyl_bessel_j(v+back_n+1, z, pi);
+      Number Jv = cyl_bessel_j(v+back_n, z, pi);
+      Number Jvm1;
+      for ( ; back_n > 0; --back_n) {
+        Jvm1 = Jv*(v+back_n)*2/z - Jv1;
+        Jv1 = Jv;
+        Jv = Jvm1;
+      }
+      return Jvm1;
+    }
+  }
+
+
+  //auto bessel_lvz = [pi](double v, double z) {
+  //	using Number = std::complex<double>;
+  //	//using Number = double;
+  //	using namespace::std;
+
+  //	Number y = z / v;
+  //	//assert(y >= 0 && y != 1);
+
+  //	Number zeta;
+  //	Number sqrt1myy = 1.0/sqrt(1.0-y*y);
+  //	if ( abs(y) > 1 ) {  
+  //      zeta = - pow(1.5, 2/3.0) * pow(sqrt(y*y - 1.0) - acos(1.0/y), 2/3.0);
+  //	} else if ( abs(y) <= 1 ) {
+  //		zeta = pow(3.0/2, 2/3.0) * pow( log((1.0 + sqrt(1.0 - y*y))/y) - sqrt(1.0 - y*y), 2/3.0);
+  //	}
+  //	Number zeta32 = sqrt(zeta) * zeta;
+
+  //	std::vector<Number> lamb = std::vector<Number>(50, Number(1));
+  //	std::vector<Number> mu = std::vector<Number>(50, Number(1));
+  //	for (size_t s = 0; s != 50-1; ++s) {
+  //		lamb[s+1] = ( lamb[s]*(3*s + 0.5)*(3*s + 1.5)*(3*s + 2.5)/( 9*(2*s + 1)*(2*s + 2) ) );
+  //	}
+  //	for (int s = 0; s != 50; ++s) {
+  //		mu[s] = - lamb[s]*(s*6+1)/(s*6-1);
+  //	}
+  //	std::vector<Number> U = std::vector<Number>(50, Number(0)); U[0] = 1;
+  //	{
+  //		std::vector<double> prev_p;
+	//		std::vector<double> p = { 1 };
+	//		for (size_t k = 1; k != 50; ++k) {
+	//			/**
+	//			 * debye[nth+1](x) = 1/2*pow(x,2)*(1 - pow(x,2)) * d/dx*debye(x) + 1/8 * integral<t,0,x>( (1 - pow(t,2))*debye(t) )
+	//			 * 
+	//			 * debye[nth+1](x) = 1/2*pow(x,2) * d/dx*debye[nth](x)
+	//			 *                   - 1/2*pow(x,4) * d/dx*debye[nth](x)
+	//			 *                   + 1/8*integral<t,0,x>( debye[nth](t) )
+	//			 *                   - 1/8*5*integral<t,0,x>( pow(t,2)*debye[nth](t) )
+	//			*/
+	//			prev_p = p;
+	//			p = std::vector<double>(prev_p.size() + 3, double(0));
+	//			for (size_t i = 0; i != prev_p.size(); ++i) {
+	//				size_t power = i;
+	//				double multiplier = prev_p[i];
+
+	//				if ( power != 0 ) {
+	//					size_t dFdx_power = power - 1;
+	//					double dFdx_multiplier = multiplier * power;
+	//					// 1/2*pow(x,2) * d/dx*debye[nth](x)
+	//					p[dFdx_power+2] += dFdx_multiplier * 0.5;
+	//					// - 1/2*pow(x,4) * d/dx*debye[nth](x)
+	//					p[dFdx_power+4] -= dFdx_multiplier * 0.5;
+	//				}
+
+	//				// 1/8*integral<t,0,x>( debye[nth](t) )
+	//				p[power+1] += multiplier/(power + 1) * 0.125;
+	//		
+	//				// - 1/8*5*integral<t,0,x>( pow(t,2)*debye[nth](t) )
+	//				p[power+2+1] -= multiplier/(power+2 + 1) * 0.625;
+	//			}
+
+	//			Number& result = U[k];
+	//			auto multiplier = p.rbegin();
+	//			auto first_multiplier = p.rend();
+	//			for ( ; multiplier != first_multiplier; ++multiplier) {
+	//				result = result*sqrt1myy + (*multiplier);
+	//			}
+	//		}
+	//	}
+
+	//	const double eps = std::numeric_limits<double>::epsilon();
+	//	Number seriesAi = 0;
+	//	Number seriesAiprime = 0;
+
+	//	{
+	//		size_t k = 0;
+	//		Number ak = 0;
+	//		for (int s = 0; s <= k*2; s += 1) {
+	//			ak += mu[s] / std::pow(zeta32,s) * U[k*2-s];
+	//		} 
+	//		Number term = ak /* / pow(v,2*0)*/ ;
+	//		do {
+	//			seriesAi += term;
+
+	//			k += 1;
+
+	//			Number ak_prev = ak;
+	//			ak = 0;
+	//			for (int s = 0; s <= k*2; s += 1) {
+	//				auto t = mu[s] / std::pow(zeta32,s) * U[k*2-s];
+	//				ak += t;
+	//			} 
+	//			term *= (ak/ak_prev) / (v*v);
+	//		} while ( abs(term) >= eps*abs(seriesAi) );
+	//	}
+
+	//	{
+	//		size_t k = 0;
+	//		Number bk = 0;
+	//		for (int s = 0; s <= k*2+1; s += 1) {
+	//			bk += lamb[s] / std::pow(zeta32,s) * U[k*2+1-s];
+	//		} bk *= -pow(zeta, -0.5);
+	//		Number term = bk /* / pow(v,2*0)*/ ;
+	//		do {
+	//			seriesAiprime += term;
+
+	//			k += 1;
+
+	//			Number bk_prev = bk;
+	//			bk = 0;
+	//			for (int s = 0; s <= k*2+1; s += 1) {
+	//				bk += lamb[s] / std::pow(zeta32,s) * U[k*2+1-s];
+	//			} bk *= -pow(zeta, -0.5);
+	//			term *= (bk/bk_prev) / (v*v);
+	//		} while ( abs(term) >= eps*abs(seriesAiprime) );
+	//	}
+
+	//	auto term1 = boost::math::airy_ai(pow(v,2.0/3) * real(zeta))/pow(v,1.0/3) * seriesAi;
+	//	auto term2 = boost::math::airy_ai_prime(pow(v,2.0/3) * real(zeta))/pow(v,5.0/3) * seriesAiprime;
+	//	auto term3 = pow(zeta*4.0/(1.0-y*y),0.25);
+	//	return (term1 + term2) * term3;
+	//};
+}
+
 // undeterminant
 
 // hypergeometric series( Gauss )
@@ -1984,12 +2345,12 @@ Number hypergeometric_series(Number a, Number b, Number c, Number z, size_t n = 
   Number result = 0;
   Number term = 1;
   size_t i = 0;
-	do {
+  do {
     result += term;
     term = term * (a+i)*(b+i)/(1+i)/(c+i)*z;
-	} while (++i != n && abs(term) >= eps*max(abs(result),eps));
+  } while (++i != n && abs(term) >= eps*max(abs(result),eps));
 
-	return result;
+  return result;
 }
 
 // gamma function( Euler )
@@ -2091,5 +2452,4 @@ alpha(k,r) = -1^ * sqrt(2/pi) * e^ * k * Sum[j=0,k]( -1^ * ------------------- *
 
   return pow(z+r+0.5,z+0.5) * exp(-(z+r+0.5)) * sqrt(pi*2) * Fr;
 }
-	
-}// namespace calculation
+  }// namespace calculation
