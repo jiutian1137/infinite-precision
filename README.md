@@ -1,4 +1,4 @@
-# InfinitePrecision
+# Infinite Precision
 
 ## floating point number
 floatX&lt;23,8>, floatX&lt;52,11>, floatX&lt;112,15>,  . . . the library target is  infinite precision
