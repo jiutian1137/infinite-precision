@@ -1,4 +1,6 @@
-# float_infinite_precision
+# InfinitePrecision
+
+#floating point number
 floatX&lt;23,8>, floatX&lt;52,11>, floatX&lt;112,15>,  . . . the library target is  infinite precision
 
 { "clmagic/calculation/fundamental/float":{
@@ -14,3 +16,6 @@ floatX&lt;23,8>, floatX&lt;52,11>, floatX&lt;112,15>,  . . . the library target 
     "https://www.exploringbinary.com/binary-division/"
   ]
 } }
+
+#rational number
+....
