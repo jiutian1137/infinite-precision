@@ -3,7 +3,7 @@
 ## floating point number
 FloatX&lt;23,8>, FloatX&lt;52,11>, FloatX&lt;112,15>,  . . . the library target is  infinite precision
 
-{ "clmagic/calculation/fundamental/float":{
+{ "clmagic/calculation/number/floating":{
   "Description": "infinite precision calculation"
   "License": "Please identify Author",
   "Author": "LongJiangnan",
