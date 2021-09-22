@@ -1,7 +1,7 @@
 # Infinite Precision
 
 ## floating point number
-floatX&lt;23,8>, floatX&lt;52,11>, floatX&lt;112,15>,  . . . the library target is  infinite precision
+FloatX&lt;23,8>, FloatX&lt;52,11>, FloatX&lt;112,15>,  . . . the library target is  infinite precision
 
 { "clmagic/calculation/fundamental/float":{
   "Description": "infinite precision calculation"
