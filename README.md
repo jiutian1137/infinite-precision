@@ -13,7 +13,7 @@ do_ldexp,
 do_cvtXXX,
 
 ### note
-"supper large(input >> (1<<exponent_bits) != 0)" not complete
+"supper large conversion(input >> (1<<exponent_bits) != 0)" not complete
 
 ## rational number
 ....
