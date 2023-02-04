@@ -15,5 +15,5 @@ do_cvtXXX,
 ### note
 "supper large conversion(input >> (1<<exponent_bits) != 0)" not complete
 
-## rational number
+## rational number with dynamic precision 
 ....
